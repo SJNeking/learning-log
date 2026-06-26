@@ -369,6 +369,97 @@ def get_entry_detail(entry_id: int):
     entry['custom_tags'] = json.loads(entry['custom_tags']) if entry['custom_tags'] else []
     return entry
 
+
+class LearningEntryUpdate(BaseModel):
+    """All fields optional for partial update"""
+    topic: Optional[str] = None
+    insight: Optional[str] = None
+    diagram: Optional[str] = None
+    code_snippet: Optional[str] = None
+    star_situation: Optional[str] = None
+    star_task: Optional[str] = None
+    star_action: Optional[str] = None
+    star_result: Optional[str] = None
+    topic_tag_id: Optional[str] = None
+    project_tag_id: Optional[str] = None
+    research_type: Optional[str] = None
+    related_tag_ids: Optional[List[str]] = None
+    custom_tags: Optional[List[str]] = None
+    analogy: Optional[str] = None
+    transfer_pattern: Optional[str] = None
+    energy_level: Optional[int] = None
+    aha_moment: Optional[bool] = None
+    source: Optional[str] = None
+    confidence_rating: Optional[int] = None
+
+
+@app.put("/api/entries/{entry_id}")
+def update_entry(entry_id: int, entry: LearningEntryUpdate):
+    """Update a learning entry (partial update — only provided fields are changed)"""
+    conn = get_db()
+    cursor = conn.cursor()
+
+    # Check exists
+    cursor.execute("SELECT id FROM learning_entries WHERE id = ?", (entry_id,))
+    if not cursor.fetchone():
+        conn.close()
+        raise HTTPException(status_code=404, detail="Entry not found")
+
+    # Build SET clause from non-None fields
+    updates = entry.model_dump(exclude_none=True)
+    if not updates:
+        conn.close()
+        return {"message": "Nothing to update", "id": entry_id}
+
+    # JSON-serialize list fields
+    if 'related_tag_ids' in updates and updates['related_tag_ids'] is not None:
+        updates['related_tag_ids'] = json.dumps(updates['related_tag_ids'])
+    if 'custom_tags' in updates and updates['custom_tags'] is not None:
+        updates['custom_tags'] = json.dumps(updates['custom_tags'])
+
+    # Update content_hash if insight changed
+    if 'insight' in updates:
+        updates['content_hash'] = hashlib.sha256(updates['insight'].encode('utf-8')).hexdigest()
+
+    set_clause = ", ".join(f"{k} = ?" for k in updates)
+    values = list(updates.values())
+
+    try:
+        cursor.execute(
+            f"UPDATE learning_entries SET {set_clause} WHERE id = ?",
+            values + [entry_id]
+        )
+        conn.commit()
+        return {"message": f"Entry {entry_id} updated", "id": entry_id, "fields_updated": list(updates.keys())}
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
+@app.delete("/api/entries/{entry_id}")
+def delete_entry(entry_id: int):
+    """Delete a learning entry by ID"""
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id FROM learning_entries WHERE id = ?", (entry_id,))
+    if not cursor.fetchone():
+        conn.close()
+        raise HTTPException(status_code=404, detail="Entry not found")
+
+    try:
+        cursor.execute("DELETE FROM learning_entries WHERE id = ?", (entry_id,))
+        conn.commit()
+        return {"message": f"Entry {entry_id} deleted", "id": entry_id}
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
 @app.get("/api/entries/feed")
 def get_feed_entries(
     limit: int = 50,
