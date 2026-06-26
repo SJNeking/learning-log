@@ -1,37 +1,116 @@
 """
-Learning Log MCP Server
-Model Context Protocol server for automated learning entry capture
+Learning Log MCP Server (v2.0 — Auto-Start Edition)
+====================================================
+Model Context Protocol server for automated learning entry capture.
+
+Features:
+  - Auto-starts FastAPI backend if not running
+  - Writes PID/port files to ~/.learning-log/ for discovery
+  - Works from ANY project directory (uses absolute paths)
+  - No manual start.sh needed
 """
 import asyncio
 import json
 import os
+import sys
+import time
+import subprocess
 from datetime import datetime
+from pathlib import Path
 from typing import Optional, List
 from mcp.server import Server
 from mcp.types import Tool, TextContent
 import requests
 from dotenv import load_dotenv
 
-load_dotenv()
+# ── Path Resolution (absolute, not relative) ──────
+PROJECT_DIR = os.environ.get(
+    "LEARNLOG_PROJECT_DIR",
+    os.path.expanduser("~/PycharmProjects/learning-log")
+)
+RUNTIME_DIR = os.path.expanduser("~/.learning-log")
+BACKEND_SCRIPT = os.path.join(PROJECT_DIR, "backend", "main.py")
+VENV_PYTHON = os.path.join(PROJECT_DIR, "venv", "bin", "python3")
+PID_FILE = os.path.join(RUNTIME_DIR, "backend.pid")
+PORT_FILE = os.path.join(RUNTIME_DIR, "backend.port")
+BACKEND_PORT = int(os.environ.get("LEARNLOG_PORT", "8002"))
+
+load_dotenv(os.path.join(PROJECT_DIR, "backend", ".env"))
 
 # Configuration
-BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8002")
-AI_API_URL = os.getenv("AI_API_URL", "http://localhost:11434/api/generate")  # Ollama example
+BACKEND_URL = os.getenv("BACKEND_URL", f"http://localhost:{BACKEND_PORT}")
+AI_API_URL = os.getenv("AI_API_URL", "http://localhost:11434/api/generate")
 AI_MODEL = os.getenv("AI_MODEL", "qwen2.5")
 
 server = Server("learning-log-mcp")
 
 
+# ── Backend Lifecycle ────────────────────────────
+
+def _check_backend_alive() -> bool:
+    """Quick check if backend is responding"""
+    try:
+        r = requests.get(f"{BACKEND_URL}/api/stats", timeout=2)
+        return r.status_code == 200
+    except Exception:
+        return False
+
+
+def _start_backend() -> bool:
+    """Start the FastAPI backend if not running. Idempotent."""
+    if _check_backend_alive():
+        return True
+
+    # Ensure runtime dir exists
+    os.makedirs(RUNTIME_DIR, exist_ok=True)
+
+    # Determine python interpreter
+    python = VENV_PYTHON if os.path.exists(VENV_PYTHON) else sys.executable
+
+    if not os.path.exists(BACKEND_SCRIPT):
+        print(f"⚠️  Backend script not found at {BACKEND_SCRIPT}", file=sys.stderr)
+        return False
+
+    print(f"🔧 正在启动 Learning Log 后端...", file=sys.stderr)
+    try:
+        proc = subprocess.Popen(
+            [python, BACKEND_SCRIPT],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+            cwd=os.path.dirname(BACKEND_SCRIPT)
+        )
+        # Write PID + port
+        with open(PID_FILE, 'w') as f:
+            f.write(str(proc.pid))
+        with open(PORT_FILE, 'w') as f:
+            f.write(str(BACKEND_PORT))
+
+        # Wait for it to be ready (up to 5 seconds)
+        for _ in range(25):
+            time.sleep(0.2)
+            if _check_backend_alive():
+                print(f"✅ 后端就绪 (PID: {proc.pid}, port: {BACKEND_PORT})", file=sys.stderr)
+                return True
+
+        print(f"⚠️  后端启动超时", file=sys.stderr)
+        return False
+    except Exception as e:
+        print(f"❌ 后端启动失败: {e}", file=sys.stderr)
+        return False
+
+
+def _ensure_backend() -> bool:
+    """Ensure backend is running; start it if not. Call before any API call."""
+    if not _check_backend_alive():
+        return _start_backend()
+    return True
+
+
+# ── AI Analysis ──────────────────────────────────
+
 def call_ai_for_analysis(raw_content: str) -> dict:
-    """
-    Call AI to analyze raw learning content and extract structured fields
-    
-    Args:
-        raw_content: Raw conversation or learning material
-        
-    Returns:
-        Structured learning entry data
-    """
+    """Call AI to analyze raw learning content and extract structured fields"""
     prompt = f"""
 你是一个学习记录分析助手。请从以下原始学习内容中提取结构化信息，返回 JSON 格式：
 
@@ -44,58 +123,32 @@ def call_ai_for_analysis(raw_content: str) -> dict:
 - insight: 关键洞察或解决方案要点
 - category: 分类（technical/design/debug/architecture/interview/general）
 - tags: 标签列表（3-5个关键词）
-- project_module: 相关项目模块（如 s-pay-mall-ddd-market）
+- project_module: 相关项目模块
 - difficulty: 难度（easy/medium/hard）
 - action_items: 后续行动项列表
 - related_skills: 相关技能名称列表
 
-只返回 JSON，不要其他文字。格式示例：
-{{
-  "topic": "React组件优化",
-  "question": "如何优化大型组件的性能？",
-  "insight": "使用 useMemo 和 useCallback 避免不必要的重渲染",
-  "category": "technical",
-  "tags": ["React", "性能优化", "hooks"],
-  "project_module": "frontend",
-  "difficulty": "medium",
-  "action_items": ["重构 StatsPanel 组件", "添加性能监控"],
-  "related_skills": ["react-best-practices"]
-}}
+只返回 JSON，不要其他文字。
 """
-    
     try:
-        # Example with Ollama (local LLM)
         response = requests.post(
             AI_API_URL,
-            json={
-                "model": AI_MODEL,
-                "prompt": prompt,
-                "stream": False
-            },
+            json={"model": AI_MODEL, "prompt": prompt, "stream": False},
             timeout=60
         )
-        
         if response.status_code == 200:
             result = response.json()
             content = result.get('response', '')
-            
-            # Try to parse JSON from response
             try:
-                # Find JSON in response (in case there's extra text)
                 start = content.find('{')
                 end = content.rfind('}') + 1
                 if start >= 0 and end > start:
-                    json_str = content[start:end]
-                    return json.loads(json_str)
-            except:
+                    return json.loads(content[start:end])
+            except Exception:
                 pass
-            
-            print(f"⚠️  AI 响应解析失败，使用默认值")
-        
         return get_default_entry(raw_content)
-    
     except Exception as e:
-        print(f"❌ AI 调用失败: {e}")
+        print(f"❌ AI 调用失败: {e}", file=sys.stderr)
         return get_default_entry(raw_content)
 
 
@@ -107,58 +160,52 @@ def get_default_entry(raw_content: str) -> dict:
         "insight": "待补充",
         "category": "general",
         "tags": ["auto-captured"],
-        "project_module": "",
         "difficulty": "medium",
-        "action_items": [],
-        "related_skills": []
     }
 
 
 def save_to_backend(entry_data: dict) -> int:
-    """
-    Save analyzed entry to backend API
-    
-    Returns:
-        Entry ID if successful
-    """
+    """Save analyzed entry to backend API. Returns entry_id or -1."""
+    if not _ensure_backend():
+        print("❌ 后端不可用", file=sys.stderr)
+        return -1
+
     try:
         response = requests.post(
             f"{BACKEND_URL}/api/entries",
             json=entry_data,
             timeout=10
         )
-        
         if response.status_code == 200:
             result = response.json()
-            entry_id = result.get('id')
-            print(f"✅ 学习记录已保存 (ID: {entry_id})")
-            return entry_id
+            print(f"✅ 学习记录已保存 (ID: {result.get('id')})", file=sys.stderr)
+            return result.get('id', -1)
         else:
-            print(f"❌ 保存失败: {response.text}")
+            print(f"❌ 保存失败: {response.text}", file=sys.stderr)
             return -1
-    
     except Exception as e:
-        print(f"❌ API 调用失败: {e}")
+        print(f"❌ API 调用失败: {e}", file=sys.stderr)
         return -1
 
 
+# ── MCP Tools ────────────────────────────────────
+
 @server.list_tools()
 async def list_tools() -> list[Tool]:
-    """Register available tools"""
     return [
         Tool(
             name="capture_learning",
-            description="Capture and analyze a learning session, automatically extract key information and save to database",
+            description="自动捕获并分析学习内容，提取关键信息后保存到 Learning Log 知识库。AI 可在对话中主动调用此工具记录有价值的洞察。",
             inputSchema={
                 "type": "object",
                 "properties": {
                     "raw_content": {
                         "type": "string",
-                        "description": "Raw learning content or conversation transcript"
+                        "description": "原始学习内容或对话片段"
                     },
                     "source": {
                         "type": "string",
-                        "description": "Source of the learning (ai-chat, meeting, reading, etc.)",
+                        "description": "学习来源",
                         "default": "ai-chat"
                     }
                 },
@@ -167,17 +214,25 @@ async def list_tools() -> list[Tool]:
         ),
         Tool(
             name="batch_capture",
-            description="Batch process multiple learning entries from a file or list",
+            description="批量处理多条学习内容并保存",
             inputSchema={
                 "type": "object",
                 "properties": {
                     "entries": {
                         "type": "array",
                         "items": {"type": "string"},
-                        "description": "List of raw content strings to process"
+                        "description": "待处理的原始内容列表"
                     }
                 },
                 "required": ["entries"]
+            }
+        ),
+        Tool(
+            name="learning_log_status",
+            description="查看 Learning Log 系统状态（记录数、标签数、最近记录）",
+            inputSchema={
+                "type": "object",
+                "properties": {}
             }
         )
     ]
@@ -185,33 +240,43 @@ async def list_tools() -> list[Tool]:
 
 @server.call_tool()
 async def call_tool(name: str, arguments: dict) -> list[TextContent]:
-    """Handle tool calls"""
-    
+    if name == "learning_log_status":
+        _ensure_backend()
+        try:
+            stats = requests.get(f"{BACKEND_URL}/api/stats", timeout=3).json()
+            entries = requests.get(f"{BACKEND_URL}/api/entries?limit=3", timeout=3).json()
+            lines = [
+                f"📊 Learning Log 状态",
+                f"   记录: {stats.get('entries', '?')} 条",
+                f"   标签: {stats.get('tags', '?')} 个",
+                f"   关联: {stats.get('links', '?')} 条",
+                f"",
+                f"📝 最近记录:"
+            ]
+            for e in entries[:3]:
+                ts = e.get('timestamp', '?')[:16]
+                lines.append(f"   #{e['id']} [{ts}] {e['topic']}")
+            return [TextContent(type="text", text="\n".join(lines))]
+        except Exception as e:
+            return [TextContent(type="text", text=f"❌ 查询失败: {e}")]
+
     if name == "capture_learning":
         raw_content = arguments.get("raw_content", "")
         source = arguments.get("source", "ai-chat")
-        
         if not raw_content:
             return [TextContent(type="text", text="❌ Error: raw_content is required")]
-        
-        print(f"\n🔍 开始分析学习内容...")
-        print(f"   来源: {source}")
-        print(f"   长度: {len(raw_content)} 字符")
-        
+
+        print(f"\n🔍 分析中 ({len(raw_content)} 字符)...", file=sys.stderr)
+
         # Step 1: AI Analysis
         entry_data = call_ai_for_analysis(raw_content)
         entry_data['source'] = source
-        
-        print(f"\n📊 分析结果:")
-        print(f"   主题: {entry_data.get('topic')}")
-        print(f"   分类: {entry_data.get('category')}")
-        print(f"   难度: {entry_data.get('difficulty')}")
-        
-        # Step 2: Save to Backend
+
+        # Step 2: Save
         entry_id = save_to_backend(entry_data)
-        
+
         if entry_id > 0:
-            result_text = f"""✅ 学习记录已成功保存！
+            return [TextContent(type="text", text=f"""✅ 学习记录已保存！
 
 📝 详情:
 - ID: {entry_id}
@@ -220,101 +285,77 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 - 标签: {', '.join(entry_data.get('tags', []))}
 - 难度: {entry_data.get('difficulty')}
 
-💡 提示: 访问 http://localhost:3000 查看完整记录
-"""
-            return [TextContent(type="text", text=result_text)]
+💡 前端查看: http://localhost:3000
+""")]
         else:
-            return [TextContent(type="text", text="❌ 保存失败，请检查后端服务是否运行")]
-    
+            return [TextContent(type="text", text="❌ 保存失败，请检查后端服务。执行 learnlog start 手动启动。")]
+
     elif name == "batch_capture":
         entries = arguments.get("entries", [])
-        
         if not entries:
             return [TextContent(type="text", text="❌ Error: entries list is required")]
-        
+
         results = []
         success_count = 0
-        
         for i, raw_content in enumerate(entries):
-            print(f"\n处理第 {i+1}/{len(entries)} 条记录...")
-            
             entry_data = call_ai_for_analysis(raw_content)
             entry_id = save_to_backend(entry_data)
-            
             if entry_id > 0:
                 success_count += 1
                 results.append(f"✅ [{i+1}] ID: {entry_id} - {entry_data.get('topic')}")
             else:
                 results.append(f"❌ [{i+1}] 失败")
-        
-        summary = f"""批量处理完成
 
-成功: {success_count}/{len(entries)}
+        return [TextContent(type="text", text=f"批量处理完成\n\n成功: {success_count}/{len(entries)}\n\n{chr(10).join(results)}")]
 
-详细结果:
-{chr(10).join(results)}
-"""
-        return [TextContent(type="text", text=summary)]
-    
     else:
         raise ValueError(f"Unknown tool: {name}")
 
 
-# Scheduled task: Auto-capture from clipboard or file
+# ── Scheduled Task ───────────────────────────────
+
 async def scheduled_capture():
-    """
-    Periodically check for new learning materials to capture
-    This can be triggered by:
-    - File changes in a watch directory
-    - Clipboard content
-    - RSS feeds
-    - Calendar events
-    """
-    print("\n⏰ 定时任务启动 (每30分钟检查一次)")
-    
+    """Periodically scan watch/ directory for .md files"""
+    print("\n⏰ 定时扫描已启动 (每30分钟)", file=sys.stderr)
     while True:
         try:
-            # Example: Check a directory for new markdown files
-            watch_dir = os.path.join(os.path.dirname(__file__), 'watch')
-            
+            watch_dir = os.path.join(PROJECT_DIR, "backend", "watch")
             if os.path.exists(watch_dir):
                 for filename in os.listdir(watch_dir):
                     if filename.endswith('.md'):
                         filepath = os.path.join(watch_dir, filename)
-                        
                         with open(filepath, 'r', encoding='utf-8') as f:
                             content = f.read()
-                        
-                        print(f"\n📄 发现新文件: {filename}")
+                        print(f"\n📄 发现: {filename}", file=sys.stderr)
                         entry_data = call_ai_for_analysis(content)
                         entry_data['source'] = 'markdown-file'
                         save_to_backend(entry_data)
-                        
-                        # Move to processed
                         processed_dir = os.path.join(watch_dir, 'processed')
                         os.makedirs(processed_dir, exist_ok=True)
                         os.rename(filepath, os.path.join(processed_dir, filename))
-            
-            await asyncio.sleep(1800)  # 30 minutes
-        
+            await asyncio.sleep(1800)
         except Exception as e:
-            print(f"❌ 定时任务错误: {e}")
+            print(f"❌ 定时任务错误: {e}", file=sys.stderr)
             await asyncio.sleep(60)
 
 
+# ── Main ─────────────────────────────────────────
+
 async def main():
-    """Start MCP server"""
-    print("=" * 60)
-    print("🚀 Learning Log MCP Server")
-    print("=" * 60)
-    print(f"Backend URL: {BACKEND_URL}")
-    print(f"AI Model: {AI_MODEL}")
-    print("=" * 60)
-    
-    # Start scheduled task in background
+    print("=" * 60, file=sys.stderr)
+    print("🚀 Learning Log MCP Server v2.0", file=sys.stderr)
+    print(f"   Project: {PROJECT_DIR}", file=sys.stderr)
+    print(f"   Backend: {BACKEND_URL}", file=sys.stderr)
+    print(f"   AI:      {AI_MODEL}", file=sys.stderr)
+    print("=" * 60, file=sys.stderr)
+
+    # Auto-start backend on launch
+    _start_backend()
+
+    # Background watch scanner
     asyncio.create_task(scheduled_capture())
-    
-    # Run MCP server
+
+    # Run MCP stdio server
     from mcp.server.stdio import stdio_server
     async with stdio_server() as (read_stream, write_stream):
         await server.run(read_stream, write_stream, server.create_initialization_options())
