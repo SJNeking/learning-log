@@ -10,7 +10,7 @@
 ┌─────────────────────────────────────────────────────────────┐
 │                     用户 (Human)                            │
 │  "帮我深入分析 Spring Boot 的自动配置原理"                    │
-│  "记录这个洞察"  "/record"  "回到刚才的话题"                  │
+│  "记录一下"  "/记录"  "/服务"  "回到刚才的话题"               │
 └────────┬────────────────────────────────────────────────────┘
          │ 自然语言交互
          ▼
@@ -19,9 +19,9 @@
 │                                                             │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────────┐ │
 │  │ 对话理解  │  │ 深度分析  │  │ Skill 系统│  │ MCP 客户端  │ │
-│  │          │  │ STAR/     │  │ coach     │  │ 连接 MCP   │ │
-│  │          │  │ 第一原理  │  │ record    │  │ Server     │ │
-│  │          │  │ CIDED     │  │ review    │  │            │ │
+│  │          │  │ STAR/     │  │ 记录      │  │ 连接 MCP   │ │
+│  │          │  │ 第一原理  │  │ 状态      │  │ Server     │ │
+│  │          │  │ CIDED     │  │ 灵感/服务  │  │            │ │
 │  └──────────┘  └──────────┘  └──────────┘  └──────┬─────┘ │
 └────────────────────────────────────────────────────┼────────┘
                                                      │
@@ -44,6 +44,14 @@
 │  GET  /api/entries  → 前端可视化                              │
 │  GET  /api/graph    → ECharts 知识图谱                        │
 └─────────────────────────────────────────────────────────────┘
+                         ▲
+┌────────────────────────┴────────────────────────────────────┐
+│              launchd (macOS 进程管理 — 开机自启)              │
+│                                                             │
+│  com.learning-log.backend   →  保活 FastAPI :8002            │
+│  com.learning-log.frontend  →  保活 Next.js :3000            │
+│  关闭 IDE / 终端不受影响，崩溃自动重启                         │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -57,7 +65,7 @@
 | 通道 | 触发方式 | 延迟 | 适用场景 |
 |------|---------|------|----------|
 | **① MCP 工具调用** | AI 对话中自动调用 `capture_learning` | 实时 | 对话中产生洞察，AI 主动捕获 |
-| **② Skill 脚本执行** | 用户 `/record` 命令 → AI 构造 JSON → subprocess 调用 | 近实时 | 用户明确要求记录当前讨论 |
+| **② Skill 脚本执行** | 用户 `/记录` 命令 → AI 构造 JSON → CLI 调用 | 近实时 | 用户明确要求记录当前讨论 |
 | **③ 文件系统监听** | 将 `.md` 丢入 `watch/` 目录 | 最长 30 分钟 | 离线笔记、外部内容导入 |
 
 ### 通道 ①：MCP 工具调用（深度集成）
@@ -112,20 +120,20 @@ Tool(
 
 ### 通道 ②：Skill 脚本执行（结构化记录）
 
-这是项目实际使用最多的通道。AI 通过 Claude Code 的 Skill 系统，在被用户命令触发后，构造完整的结构化 JSON payload，通过 subprocess 调用 Python 脚本入库。
+这是项目实际使用最多的通道。AI 通过 Claude Code 的 Skill 系统，在被用户 `/记录` 命令触发后，构造完整的结构化 JSON payload，通过 `learnlog` CLI 入库。
 
 **执行流程图**：
 
 ```
-用户: /record
+用户: /记录
         │
         ▼
-Claude Code Skill 系统 → 加载 record.md Skill 指令
+Claude Code Skill 系统 → 加载 记录.md Skill 指令
         │
         ▼
 AI 执行深度分析（按 Skill 指令的要求）:
   ├─ 1. Clarify:  锁定用户意图
-  ├─ 2. Investigate: 检查后端存活、标签是否存在
+  ├─ 2. Investigate: 检查后端存活（launchd 持久化保证在线）、标签是否存在
   ├─ 3. Generate: 生成 ≥2000 字的六步深度分析
   │    ├─ 核心结论
   │    ├─ 领域场景案例
@@ -138,7 +146,7 @@ AI 执行深度分析（按 Skill 指令的要求）:
   └─ 5. Deliver: 构造 JSON payload → 入库
         │
         ▼
-构造 payload (Python dict):
+构造 payload → learnlog CLI:
   {
     "topic": "...",
     "insight": "...(2000+ 字)",
@@ -156,34 +164,26 @@ AI 执行深度分析（按 Skill 指令的要求）:
   }
         │
         ▼
-subprocess.run([
-    "python3",
-    "scripts/auto_record.py",
-    json.dumps(payload, ensure_ascii=False)
-])
+learnlog record "主题" "insight全文" --tag 标签 --energy 5 --aha true --type deep-research
         │
         ▼
-auto_record.py:
-  ├─ 标签自动映射 (resolve_topic_tag)
-  ├─ Mermaid 格式校验 (必须以 flowchart/graph/sequenceDiagram 开头)
-  ├─ 清理旧字段
-  └─ POST → http://localhost:8002/api/entries
+learnlog CLI → POST → http://localhost:8002/api/entries
         │
         ▼
-返回给用户: "✅ 灵感记录已保存"
+返回给用户: "✅ 已记录 #ID | http://localhost:3000"
 ```
 
-**实际的 run_record.py payload 示例**（来自项目）：
+**实际的 learnlog record 调用示例**（来自项目）：
 
 ```python
 payload = {
     "topic": "AI执行约束与显式授权机制的深度思考",
     "insight": "**结论：** AI的被动性是出于安全架构的最小权限原则...",
-    "diagram": "sequenceDiagram\n  participant U as User\n  participant A as AI Agent\n  participant S as Local Scripts\n  U->>A: 触发 /record\n  A->>A: 激活 Execution Mode\n  A->>S: 执行 auto_record.py\n  S-->>A: 返回成功\n  A->>U: 💡 灵感已捕获",
+    "diagram": "sequenceDiagram\n  participant U as User\n  participant A as AI Agent\n  participant L as learnlog CLI\n  U->>A: 触发 /记录\n  A->>A: 激活 CIDED 分析\n  A->>L: learnlog record ...\n  L-->>A: 返回成功\n  A->>U: ✅ 已记录 #42",
     "energy_level": 5,
     "aha_moment": True,
     "research_type": "deep-research",
-    "source": "record-skill",
+    "source": "learnlog-cli",
     "topic_tag_id": "cn.dolphinmind.learning.log.tag.discipline.cs.ai",
     # ... STAR fields
 }
@@ -221,7 +221,7 @@ MCP Server 定时任务 (每 30 分钟):
 │  C ─ Clarify     → 锁定用户意图，明确记录目标         │
 │       │                                              │
 │       ▼                                              │
-│  I ─ Investigate → 环境保活 (后端/DB 存活检查)       │
+│  I ─ Investigate → 环境保活 (launchd 持久化 + MCP 双重保障) │
 │       │           标签预检 (目标标签是否已存在)       │
 │       │           上下文收集 (对话历史摘要)           │
 │       ▼                                              │
@@ -235,7 +235,7 @@ MCP Server 定时任务 (每 30 分钟):
 │       │           - 能量评级是否合理？                │
 │       ▼                                              │
 │  D ─ Deliver     → 构造 JSON payload                 │
-│                    subprocess 调用入库脚本             │
+│                    learnlog CLI 调用入库             │
 │                    返回确认消息给用户                  │
 └──────────────────────────────────────────────────────┘
 ```
@@ -259,7 +259,7 @@ MCP Server 定时任务 (每 30 分钟):
 
 ## 四、上下文断点管理（不丢失对话状态）
 
-当用户在研究过程中需要 `/record` 记录灵感，但又不想丢失当前对话的上下文时，系统提供了断点管理机制：
+当用户在研究过程中需要 `/记录` 记录灵感，但又不想丢失当前对话的上下文时，系统提供了断点管理机制：
 
 ```
 用户正在深入讨论 Spring Boot 自动配置
@@ -267,7 +267,7 @@ MCP Server 定时任务 (每 30 分钟):
        ├─ 突然产生需要记录的洞察
        │
        ▼
-用户: /record
+用户: /记录
        │
 AI:  1. 保存断点 (context_manager.save_checkpoint)
       │   保存内容: last_topic, conversation_summary, pending_questions
@@ -276,12 +276,12 @@ AI:  1. 保存断点 (context_manager.save_checkpoint)
       ├─ 2. 执行记录 (六步深度分析 → 入库)
       │
       └─ 3. 提示用户可恢复
-           "💡 灵感已归档。输入 /resume 回到刚才的话题。"
+           "💡 灵感已归档。#42 输入继续回到刚才的话题。"
        
 稍后...
        │
        ▼
-用户: /resume
+用户: "继续讨论"
        │
 AI:  1. 读取断点 (context_manager.load_latest_checkpoint)
       │   获取: last_topic, conversation_summary, pending_questions
@@ -318,35 +318,28 @@ checkpoint = {
 
 ## 五、AI 协作配置
 
-### 5.1 Claude Code 连接配置
+### 5.1 Claude Code 配置
 
-项目根目录的 `claude.sh` 用于配置 Claude Code 连接到中转 API：
+Claude Code 通过 `~/.claude/CLAUDE.md`（全局）和项目 `CLAUDE.md` 自动加载上下文，无需额外启动脚本。
 
-```bash
-# claude.sh
-unset ANTHROPIC_BASE_URL
-export ANTHROPIC_BASE_URL="https://apis.itedus.cn/v1/chat/completions"
-export ANTHROPIC_API_KEY="sk-..."
+### 5.2 项目 Skills（5 个）
 
-# 启动 Claude Code
-claude
-```
+Skill 文件位于 `.claude/skills/`，由 Claude Code 自动加载：
 
-### 5.2 Claude Code 本地设置
+| Skill | 文件 | 触发方式 |
+|-------|------|---------|
+| `/记录` | `记录.md` | 深度知识沉淀（六步分析 ≥2000字 → 入库） |
+| `/状态` | `状态.md` | 系统状态速查 + 最近 Feed |
+| `/灵感` | `灵感.md` | 快速顿悟捕获 (energy=5, aha=true) |
+| `/服务` | `服务.md` | 后台服务管理（launchd install/status/restart/logs） |
+| `/命令` | `命令.md` | 列出所有可用命令 |
 
-```json
-// .claude/settings.local.json
-{
-  "permissions": {
-    "allow": [
-      "mcp__filesystem__directory_tree",
-      "mcp__filesystem__read_text_file"
-    ]
-  }
-}
-```
+### 5.3 全局 CLI
 
-这套权限允许 AI 在对话中直接读取项目文件系统，实现代码感知的协作。
+`learnlog` 命令全局可用（位于 `~/.local/bin/learnlog`），提供：
+- `learnlog record` / `learnlog pipe` — 学习记录入库
+- `learnlog status` / `learnlog feed` — 系统状态查询
+- `learnlog service *` — launchd 持久化服务管理
 
 ---
 
@@ -361,11 +354,11 @@ T+0min  用户: "帮我深入分析数据库幂等性设计的最佳实践"
         AI: 展开深度分析，讨论唯一索引、分布式锁、Token 机制...
             (对话过程中心流涌动)
 
-T+8min  用户: "/record"
+T+8min  用户: "/记录"
         AI: 
           ┌─ 保存断点 (当前讨论状态归档)
           ├─ 激活 CIDED 决策流
-          ├─ 检查后端存活 → ✅
+          ├─ 检查后端存活（launchd 保证在线）→ ✅
           ├─ 检查标签 "cn...discipline.cs.backend.python" → 已存在
           ├─ 生成 2000+ 字六步分析:
           │   ├─ 核心结论：确立以唯一索引为基石的幂等性设计
@@ -375,8 +368,8 @@ T+8min  用户: "/record"
           │   ├─ 代码：ALTER TABLE + UNIQUE INDEX + 应用层预检
           │   └─ STAR + 反问：亿级数据下 Hash 索引的瓶颈？
           ├─ 构造 22 字段 payload
-          ├─ subprocess → auto_record.py → POST /api/entries
-          └─ "✅ 灵感已归档 (ID: 42)。输入 /resume 回到刚才的话题。"
+          ├─ learnlog record → POST /api/entries
+          └─ "✅ 已记录 #42。http://localhost:3000"
 
 T+10min  用户: "继续讨论分布式场景下的幂等性"
          AI: 从断点恢复上下文，无缝继续讨论
@@ -433,14 +426,14 @@ T+10min  用户: "继续讨论分布式场景下的幂等性"
 │  AI 引擎层                                                 │
 │  ├─ Claude (通过 ANTHROPIC_BASE_URL 连接)                   │
 │  ├─ Ollama / OpenAI (MCP 分析用)                           │
-│  └─ Skill 系统 (coach / record / review / resume)           │
+│  └─ Skill 系统 (记录 / 状态 / 灵感 / 服务 / 命令)           │
 │                                                            │
 │  协议层                                                    │
 │  ├─ MCP (Model Context Protocol) — AI ↔ 工具               │
 │  │   ├─ capture_learning: 非结构化内容 → 结构化记录          │
 │  │   └─ batch_capture: 批量导入                             │
 │  ├─ REST API (FastAPI) — 工具 ↔ 数据库                      │
-│  └─ subprocess — Skill 执行 python 脚本                     │
+│  └─ learnlog CLI — Skill 通过命令行入库                     │
 │                                                            │
 │  持久化层                                                   │
 │  ├─ SQLite (learning-log.db)                               │
@@ -448,9 +441,12 @@ T+10min  用户: "继续讨论分布式场景下的幂等性"
 │  │   ├─ tag_links: 知识节点关联                             │
 │  │   ├─ learning_entries: 结构化学习记录                     │
 │  │   └─ nl_commands: 自然语言命令历史                       │
-│  └─ 文件系统                                                │
-│      ├─ ~/.learning-log/checkpoints/ (对话断点)                    │
-│      └─ backend/watch/ (离线导入监听)                        │
+│  ├─ 文件系统                                                │
+│  │   ├─ ~/.learning-log/checkpoints/ (对话断点)              │
+│  │   └─ backend/watch/ (离线导入监听)                        │
+│  └─ launchd (进程持久化)                                     │
+│       ├─ com.learning-log.backend  → FastAPI :8002           │
+│       └─ com.learning-log.frontend → Next.js :3000           │
 └────────────────────────────────────────────────────────────┘
 ```
 
@@ -463,23 +459,42 @@ T+10min  用户: "继续讨论分布式场景下的幂等性"
 | **AI 不是工具，是协作者** | AI 深度参与知识的提炼和结构化，不只是执行 CRUD |
 | **对话即数据源** | AI 对话是知识输入的主要来源，每次深入讨论都应产生可追溯的记录 |
 | **强制深度** | CIDED 框架 + 2000 字红线 + 六步结构，防止肤浅记录 |
-| **零拉扯** | 用户一句 `/record`，AI 自动完成分析→构造→入库全流程 |
+| **零拉扯** | 用户一句 `/记录`，AI 自动完成分析→构造→入库全流程 |
 | **上下文不丢失** | 断点管理让记录灵感不打断研究心流 |
 | **多通道互补** | MCP 自动捕获 + Skill 结构化记录 + 文件系统离线导入 |
 | **知识可追溯** | STAR 法则 + content_hash 去重 + timestamp 时间线，确保每个洞察有来源 |
+| **持久化运行** | launchd 管理前后端进程，开机自启、崩溃自动恢复，关闭 IDE/终端不受影响 |
 
 ---
 
 ## 十、复现 AI 协作环境的步骤
 
-1. **启动后端**: `cd backend && python3 main.py` (port 8002)
-2. **启动前端**: `cd frontend && npm run dev` (port 3000)
-3. **启动 MCP 服务** (可选): `cd backend && python3 mcp_server.py`
-4. **配置 Claude Code**:
-   - 设置 `ANTHROPIC_BASE_URL` 和 `ANTHROPIC_API_KEY`
-   - 配置 `.claude/settings.local.json` 中的 MCP 工具权限
-5. **准备 Skill 文件**: 在 Claude Code 的 skills 目录中放置 `record.md`、`coach.md`、`review.md` 等
-6. **测试协作环**:
-   - 在 Claude Code 中说 `/record`
+1. **安装持久化服务**（推荐，一次配置永久生效）:
+   ```bash
+   learnlog service install
+   ```
+   前后端由 launchd 管理，开机自启，崩溃自动恢复。
+
+   手动启动（临时）:
+   ```bash
+   bash deploy/start.sh
+   ```
+
+2. **验证服务**:
+   ```bash
+   learnlog service status   # 确认前后端运行中
+   curl localhost:8002/api/stats  # 后端健康检查
+   ```
+
+3. **MCP Server**（可选，AI 对话中自动触发）:
+   - `backend/mcp_server.py` 在首次 MCP 调用时自动拉起后端
+   - 提供 `capture_learning`、`batch_capture`、`learning_log_status` 三个工具
+
+4. **Skill 文件**（已内置，无需手动配置）:
+   - `.claude/skills/` 下 5 个 Skill（记录/状态/灵感/服务/命令）
+   - Claude Code 自动加载，用户输入 `/记录`、`/状态` 等即可触发
+
+5. **测试协作环**:
+   - 在 Claude Code 中说 `/记录`
    - 验证 AI 是否执行了 CIDED 流程并成功入库
    - 检查 `http://localhost:3000` 是否出现新记录
