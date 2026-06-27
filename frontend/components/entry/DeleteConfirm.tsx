@@ -1,8 +1,18 @@
 'use client';
+import { useEffect } from 'react';
 
 export default function DeleteConfirm({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onCancel]);
+
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="确认删除"
       style={{
         position: 'fixed',
         inset: 0,
@@ -41,6 +51,7 @@ export default function DeleteConfirm({ onConfirm, onCancel }: { onConfirm: () =
             取消
           </button>
           <button
+            autoFocus
             onClick={onConfirm}
             style={{
               padding: '8px 16px',

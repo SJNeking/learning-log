@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import EntryTags from '@/components/entry/EntryTags';
 import EntryDetailContent from '@/components/entry/EntryDetailContent';
 import EntryForm from '@/components/entry/EntryForm';
@@ -22,6 +22,12 @@ export default function EntryDetail({ entry, onClose, onRefresh }: { entry: Entr
     if (entry.code_snippet) md += `### 代码实现\n\n\`\`\`json\n${entry.code_snippet}\n\`\`\`\n\n`;
     return md;
   }, [entry]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   if (!entry) return null;
 
@@ -61,35 +67,38 @@ export default function EntryDetail({ entry, onClose, onRefresh }: { entry: Entr
   }
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(15, 23, 42, 0.92)',
-        backdropFilter: 'blur(8px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-        padding: '20px'
-      }}
-      onClick={onClose}
-    >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={entry.topic}
         style={{
-          background: 'var(--bg-secondary)',
-          border: '1px solid var(--border-color)',
-          borderRadius: '16px',
-          maxWidth: '1000px',
-          width: '100%',
-          maxHeight: '90vh',
-          overflow: 'hidden',
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.92)',
+          backdropFilter: 'blur(8px)',
           display: 'flex',
-          flexDirection: 'column',
-          boxShadow: '0 24px 64px rgba(0,0,0,0.5)'
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px'
         }}
-        onClick={e => e.stopPropagation()}
+        onClick={onClose}
       >
+        <div
+          style={{
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '16px',
+            maxWidth: '1000px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 24px 64px rgba(0,0,0,0.5)'
+          }}
+          onClick={e => e.stopPropagation()}
+        >
         {/* 顶部栏 */}
         <div style={{
           padding: '20px 28px',
@@ -145,6 +154,7 @@ export default function EntryDetail({ entry, onClose, onRefresh }: { entry: Entr
               </button>
               <button
                 onClick={onClose}
+                aria-label="关闭"
                 style={{
                   background: 'var(--border-color)',
                   border: 'none',

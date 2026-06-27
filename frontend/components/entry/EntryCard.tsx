@@ -8,7 +8,10 @@ export default function EntryCard({ entry, onClick }: { entry: Entry; onClick: (
   const timeStr = `${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={() => onClick(entry)}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(entry); } }}
       style={{
         display: 'flex',
         gap: '24px',

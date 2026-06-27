@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import FormField, { FormInput, FormTextarea, FormSelect, FormNumber, FormCheckbox } from '@/components/entry/FormField';
 import type { Entry, LearningEntryCreate } from '@/types';
 
@@ -69,8 +69,14 @@ export default function EntryForm({
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleKeyDown = useCallback((e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); }, [onCancel]);
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
+
   return (
-    <form onSubmit={handleSubmit} style={{
+    <form onSubmit={handleSubmit} role="dialog" aria-modal="true" aria-label={entry ? '编辑条目' : '新建条目'} style={{
       position: 'fixed',
       inset: 0,
       background: 'rgba(15, 23, 42, 0.92)',
