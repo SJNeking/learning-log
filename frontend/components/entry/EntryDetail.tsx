@@ -4,6 +4,7 @@ import Tag from '@/components/ui/Tag';
 import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';
 import MermaidDiagram from '@/components/renderers/MermaidDiagram';
 import EntryForm from '@/components/entry/EntryForm';
+import DeleteConfirm from '@/components/entry/DeleteConfirm';
 import { IconLightbulb, IconTag } from '@/components/ui/Icons';
 import { api } from '@/lib/api';
 import { getResearchTypeInfo } from '@/lib/constants';
@@ -75,7 +76,7 @@ export default function EntryDetail({ entry, onClose, onRefresh }: { entry: Entr
       <div
         style={{
           background: 'var(--bg-secondary)',
-          border: '1px solid #334155',
+          border: '1px solid var(--border-color)',
           borderRadius: '16px',
           maxWidth: '1000px',
           width: '100%',
@@ -90,7 +91,7 @@ export default function EntryDetail({ entry, onClose, onRefresh }: { entry: Entr
         {/* 顶部栏 */}
         <div style={{
           padding: '20px 28px',
-          borderBottom: '1px solid #334155',
+          borderBottom: '1px solid var(--border-color)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'flex-start',
@@ -184,7 +185,7 @@ export default function EntryDetail({ entry, onClose, onRefresh }: { entry: Entr
                 color: 'var(--text-primary)',
                 margin: '28px 0 14px 0',
                 paddingBottom: '8px',
-                borderBottom: '1px solid #334155',
+                borderBottom: '1px solid var(--border-color)',
                 letterSpacing: '-0.01em'
               }}>架构图表</h3>
               <MermaidDiagram chart={entry.diagram} />
@@ -207,63 +208,8 @@ export default function EntryDetail({ entry, onClose, onRefresh }: { entry: Entr
           )}
         </div>
 
-        {/* 删除确认对话框 */}
         {showDeleteConfirm && (
-          <div
-            style={{
-              position: 'fixed',
-              inset: 0,
-              background: 'rgba(15, 23, 42, 0.95)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 1100
-            }}
-            onClick={() => setShowDeleteConfirm(false)}
-          >
-            <div
-              style={{
-                background: 'var(--bg-secondary)',
-                border: '1px solid #334155',
-                borderRadius: '12px',
-                padding: '24px',
-                maxWidth: '400px'
-              }}
-              onClick={e => e.stopPropagation()}
-            >
-              <h3 style={{ margin: '0 0 12px 0', color: 'var(--text-primary)', fontSize: '16px' }}>确认删除</h3>
-              <p style={{ margin: '0 0 20px 0', color: 'var(--text-secondary)', fontSize: '14px' }}>此操作不可撤销，确定要删除这条记录吗？</p>
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                <button
-                  onClick={() => setShowDeleteConfirm(false)}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: '6px',
-                    border: '1px solid #334155',
-                    background: 'transparent',
-                    color: 'var(--text-secondary)',
-                    cursor: 'pointer'
-                  }}
-                >
-                  取消
-                </button>
-                <button
-                  onClick={handleDelete}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: '6px',
-                    border: 'none',
-                    background: '#dc2626',
-                    color: '#fff',
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
-                >
-                  确认删除
-                </button>
-              </div>
-            </div>
-          </div>
+          <DeleteConfirm onConfirm={handleDelete} onCancel={() => setShowDeleteConfirm(false)} />
         )}
       </div>
     </div>

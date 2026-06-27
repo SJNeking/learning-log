@@ -2,9 +2,8 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import CopyButton from '@/components/ui/CopyButton';
+import CodeBlock from '@/components/renderers/CodeBlock';
 
 export default function MarkdownRenderer({ content }: { content: string }) {
   return (
@@ -25,7 +24,7 @@ export default function MarkdownRenderer({ content }: { content: string }) {
               color: 'var(--text-primary)',
               margin: '32px 0 16px 0',
               paddingBottom: '12px',
-              borderBottom: '2px solid #334155',
+              borderBottom: '2px solid var(--border-color)',
               letterSpacing: '-0.02em'
             }}>{children}</h1>
           ),
@@ -36,7 +35,7 @@ export default function MarkdownRenderer({ content }: { content: string }) {
               color: 'var(--text-primary)',
               margin: '28px 0 14px 0',
               paddingBottom: '8px',
-              borderBottom: '1px solid #334155',
+              borderBottom: '1px solid var(--border-color)',
               letterSpacing: '-0.01em'
             }}>{children}</h2>
           ),
@@ -118,7 +117,7 @@ export default function MarkdownRenderer({ content }: { content: string }) {
           hr: () => (
             <hr style={{
               border: 'none',
-              borderTop: '1px solid #334155',
+              borderTop: '1px solid var(--border-color)',
               margin: '24px 0'
             }} />
           ),
@@ -154,49 +153,7 @@ export default function MarkdownRenderer({ content }: { content: string }) {
                   </div>
                 );
               }
-              return (
-                <div 
-                  style={{
-                    position: 'relative',
-                    borderRadius: '8px',
-                    overflow: 'hidden',
-                    margin: '16px 0',
-                    boxShadow: '0 4px 6px rgba(0,0,0,0.3)'
-                  }}
-                  onMouseEnter={e => {
-                    const btn = (e.currentTarget as HTMLDivElement).querySelector('[data-copy-btn]');
-                    if (btn) (btn as HTMLElement).style.opacity = '1';
-                  }}
-                  onMouseLeave={e => {
-                    const btn = (e.currentTarget as HTMLDivElement).querySelector('[data-copy-btn]');
-                    if (btn) (btn as HTMLElement).style.opacity = '0';
-                  }}
-                >
-                  <div style={{
-                    background: 'linear-gradient(to bottom, #374151, #1f2937)',
-                    padding: '6px 12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    borderBottom: '1px solid rgba(255,255,255,0.1)'
-                  }}>
-                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ff5f56' }} />
-                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ffbd2e' }} />
-                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#27c93f' }} />
-                    <span style={{ marginLeft: '8px', fontSize: '11px', color: '#9ca3af' }}>{match[1]}</span>
-                  </div>
-                  <SyntaxHighlighter
-                    style={vscDarkPlus}
-                    language={match[1]}
-                    PreTag="div"
-                    customStyle={{ margin: 0, borderRadius: '0 0 8px 8px', background: '#0d1117', fontSize: '13px', lineHeight: '1.6' }}
-                    {...props}
-                  >{String(children).replace(/\n$/, '')}</SyntaxHighlighter>
-                  <div data-copy-btn style={{ opacity: 0, transition: 'opacity 0.2s' }}>
-                    <CopyButton text={String(children).replace(/\n$/, '')} />
-                  </div>
-                </div>
-              );
+              return <CodeBlock code={String(children).replace(/\n$/, '')} language={match[1]} />;
             }
             return <code style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px', fontFamily: 'Menlo, Monaco, monospace', fontSize: '0.9em', color: '#38bdf8' }} {...props}>{children}</code>;
           }

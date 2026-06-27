@@ -3,6 +3,16 @@ import { useState, useEffect } from 'react';
 import { IconLightbulb } from '@/components/ui/Icons';
 import type { Entry, LearningEntryCreate } from '@/types';
 
+const inputStyle = {
+  width: '100%',
+  padding: '10px 12px',
+  borderRadius: '8px',
+  border: '1px solid var(--border-color)',
+  background: 'var(--bg-primary)',
+  color: 'var(--text-secondary)',
+  fontSize: '14px',
+} as const;
+
 export default function EntryForm({ 
   entry, 
   onSave, 
@@ -83,7 +93,7 @@ export default function EntryForm({
     }}>
       <div style={{
         background: 'var(--bg-secondary)',
-        border: '1px solid #334155',
+        border: '1px solid var(--border-color)',
         borderRadius: '16px',
         maxWidth: '800px',
         width: '100%',
@@ -104,15 +114,7 @@ export default function EntryForm({
               required
               value={formData.topic}
               onChange={e => handleChange('topic', e.target.value)}
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: '8px',
-                border: '1px solid #334155',
-                background: 'var(--bg-primary)',
-                color: 'var(--text-secondary)',
-                fontSize: '14px'
-              }}
+              style={inputStyle}
             />
           </div>
 
@@ -124,17 +126,7 @@ export default function EntryForm({
               value={formData.insight}
               onChange={e => handleChange('insight', e.target.value)}
               rows={8}
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: '8px',
-                border: '1px solid #334155',
-                background: 'var(--bg-primary)',
-                color: 'var(--text-secondary)',
-                fontSize: '14px',
-                fontFamily: 'monospace',
-                resize: 'vertical'
-              }}
+              style={{ ...inputStyle, fontFamily: 'monospace', resize: 'vertical' }}
             />
           </div>
 
@@ -144,15 +136,7 @@ export default function EntryForm({
             <select
               value={formData.research_type}
               onChange={e => handleChange('research_type', e.target.value)}
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: '8px',
-                border: '1px solid #334155',
-                background: 'var(--bg-primary)',
-                color: 'var(--text-secondary)',
-                fontSize: '14px'
-              }}
+              style={inputStyle}
             >
               <option value="">请选择</option>
               <option value="deep-research">深度研究</option>
@@ -171,15 +155,7 @@ export default function EntryForm({
                 max="5"
                 value={formData.energy_level}
                 onChange={e => handleChange('energy_level', parseInt(e.target.value))}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid #334155',
-                  background: 'var(--bg-primary)',
-                  color: 'var(--text-secondary)',
-                  fontSize: '14px'
-                }}
+                style={inputStyle}
               />
             </div>
             <div style={{ flex: 1 }}>
@@ -207,15 +183,7 @@ export default function EntryForm({
               value={formData.custom_tags?.join(', ') || ''}
               onChange={e => handleChange('custom_tags', e.target.value.split(',').map(t => t.trim()).filter(Boolean))}
               placeholder="例如: React, Hooks, 状态管理"
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: '8px',
-                border: '1px solid #334155',
-                background: 'var(--bg-primary)',
-                color: 'var(--text-secondary)',
-                fontSize: '14px'
-              }}
+              style={inputStyle}
             />
           </div>
         </div>
@@ -228,7 +196,7 @@ export default function EntryForm({
             style={{
               padding: '10px 20px',
               borderRadius: '8px',
-              border: '1px solid #334155',
+              border: '1px solid var(--border-color)',
               background: 'transparent',
               color: 'var(--text-secondary)',
               fontSize: '14px',
