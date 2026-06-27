@@ -5,7 +5,6 @@ import { api } from '@/lib/api';
 import SearchBar from '@/components/ui/SearchBar';
 import Navigation from '@/components/layout/Navigation';
 import StatsPanel from '@/components/layout/StatsPanel';
-import FilterBar from '@/components/layout/FilterBar';
 import TimelineView from '@/components/timeline/TimelineView';
 import EntryDetail from '@/components/entry/EntryDetail';
 import EntryForm from '@/components/entry/EntryForm';
