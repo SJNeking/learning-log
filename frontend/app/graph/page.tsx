@@ -8,18 +8,43 @@ import EntryDetail from '@/components/entry/EntryDetail';
 import { IconNetwork, IconHourglass, IconEmpty, IconRefresh } from '@/components/ui/Icons';
 import type { GraphData, Entry } from '@/types';
 
+// 真实 tag_category 16 种颜色映射
 const CATEGORY_COLORS: Record<string, string> = {
   discipline: '#34d399',
-  subject: '#38bdf8',
   topic: '#f59e0b',
-  'research-type': '#8b5cf6',
+  base: '#10b981',
+  architecture: '#38bdf8',
+  framework: '#818cf8',
+  tool: '#c084fc',
+  language: '#e879f9',
+  database: '#fb923c',
+  mq: '#f87171',
+  cache: '#fbbf24',
+  gateway: '#a78bfa',
+  registry: '#2dd4bf',
+  monitor: '#f472b6',
+  security: '#ef4444',
+  project: '#64748b',
+  test: '#94a3b8',
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
   discipline: '学科领域',
-  subject: '技术栈',
   topic: '学习主题',
-  'research-type': '研究类型',
+  base: '基础',
+  architecture: '架构',
+  framework: '框架',
+  tool: '工具',
+  language: '编程语言',
+  database: '数据库',
+  mq: '消息队列',
+  cache: '缓存',
+  gateway: '网关',
+  registry: '注册中心',
+  monitor: '监控',
+  security: '安全',
+  project: '项目',
+  test: '测试',
 };
 
 export default function GraphPage() {
@@ -60,13 +85,19 @@ export default function GraphPage() {
       const chart = echarts.init(chartRef.current, 'dark');
       echartsRef.current = chart;
 
+      const values = graphData.nodes.map(n => n.value || 0);
+      const minVal = Math.min(...values);
+      const maxVal = Math.max(...values);
+      const range = maxVal - minVal || 1;
+
       chart.setOption({
         backgroundColor: 'transparent',
         tooltip: {
           trigger: 'item',
           formatter: (params: any) => {
             if (params.dataType === 'node') {
-              return `<strong>${params.name}</strong><br/>${CATEGORY_LABELS[params.data.category] || params.data.category || ''}`;
+              const cat = CATEGORY_LABELS[params.data.category] || params.data.category || '';
+              return `<strong>${params.name}</strong><br/>${cat}${params.value != null ? ` · ${params.value} 条记录` : ''}`;
             }
             return params.data?.label || '';
           }
@@ -76,16 +107,16 @@ export default function GraphPage() {
           layout: 'force',
           roam: true,
           draggable: true,
-          symbolSize: 50,
           edgeSymbol: ['none', 'arrow'],
           edgeSymbolSize: [0, 10],
           label: { show: true, fontSize: 11, color: '#c8d1dc' },
           force: { repulsion: 400, edgeLength: 180, gravity: 0.08 },
           data: graphData.nodes.map(n => ({
             id: n.id,
-            name: (n as any).name || n.label || n.id.split('.').pop() || n.id,
+            name: n.name || n.id.split('.').pop() || n.id,
+            value: n.value || 0,
             category: n.category,
-            symbolSize: n.category === 'discipline' ? 65 : n.category === 'subject' ? 50 : 35,
+            symbolSize: 20 + ((n.value || 0) - minVal) / range * 50,
             itemStyle: { color: CATEGORY_COLORS[n.category] || '#64748b' },
           })),
           edges: graphData.edges.map(e => ({
@@ -138,12 +169,15 @@ export default function GraphPage() {
           </div>
         ) : (
           <ErrorBoundary fallback={<div style={{ margin: 'auto', padding: '80px', color: 'var(--text-muted)' }}>图谱渲染异常<button onClick={() => window.location.reload()} style={{ marginLeft: '12px', padding: '6px 12px', border: '1px solid var(--border-color)', borderRadius: '6px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', cursor: 'pointer' }}>重试</button></div>}>
-            {/* 图例 */}
-            <div style={{ position: 'absolute', top: '16px', left: '16px', zIndex: 10, background: 'rgba(15,23,42,0.85)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px 16px', fontSize: '12px' }}>
-              {Object.entries(CATEGORY_LABELS).map(([cat, label]) => (
+            {/* 图例 — 从实际数据中提取出现的 category */}
+            <div style={{ position: 'absolute', top: '16px', left: '16px', zIndex: 10, background: 'rgba(15,23,42,0.85)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px 16px', fontSize: '12px', maxHeight: '50vh', overflowY: 'auto' }}>
+              {Array.from(new Set(graphData.nodes.map(n => n.category)))
+                .filter(Boolean)
+                .sort()
+                .map(cat => (
                 <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', color: 'var(--text-secondary)' }}>
-                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: CATEGORY_COLORS[cat] }} />
-                  {label}
+                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: CATEGORY_COLORS[cat] || '#64748b', flexShrink: 0 }} />
+                  {CATEGORY_LABELS[cat] || cat}
                 </div>
               ))}
               <button onClick={resetZoom} style={{ marginTop: '8px', padding: '4px 10px', border: '1px solid var(--border-color)', borderRadius: '4px', background: 'var(--bg-secondary)', color: 'var(--text-muted)', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>

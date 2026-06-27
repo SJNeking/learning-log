@@ -85,9 +85,9 @@ export interface Entry {
 
 export interface GraphNode {
   id: string;
-  label: string;
+  name: string;
   category: string;
-  degree?: number;
+  value: number;
 }
 
 export interface GraphEdge {
