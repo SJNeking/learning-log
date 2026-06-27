@@ -12,6 +12,11 @@ PROJECT_DIR="$HOME/PycharmProjects/learning-log"
 LAUNCH_AGENTS_DIR="$HOME/Library/LaunchAgents"
 RUNTIME_DIR="$HOME/.learning-log"
 
+INSTALL_MCP=false
+if [[ "$1" == "--with-mcp" ]]; then
+    INSTALL_MCP=true
+fi
+
 echo "🔧 Learning Log 持久化服务安装"
 echo "================================"
 echo ""
@@ -22,11 +27,13 @@ mkdir -p "$RUNTIME_DIR"
 # 确保脚本可执行
 chmod +x "$PROJECT_DIR/deploy/run-backend.sh"
 chmod +x "$PROJECT_DIR/deploy/run-frontend.sh"
+chmod +x "$PROJECT_DIR/deploy/run-mcp.sh"
 
 # 卸载旧版本（如果存在）
 echo "📦 清理旧服务..."
 launchctl unload "$LAUNCH_AGENTS_DIR/com.learning-log.backend.plist" 2>/dev/null || true
 launchctl unload "$LAUNCH_AGENTS_DIR/com.learning-log.frontend.plist" 2>/dev/null || true
+launchctl unload "$LAUNCH_AGENTS_DIR/com.learning-log.mcp.plist" 2>/dev/null || true
 
 # 复制 plist 到 LaunchAgents 目录
 echo "📋 安装 plist 文件..."
@@ -38,11 +45,17 @@ echo "🚀 启动服务..."
 launchctl load "$LAUNCH_AGENTS_DIR/com.learning-log.backend.plist"
 launchctl load "$LAUNCH_AGENTS_DIR/com.learning-log.frontend.plist"
 
+if [ "$INSTALL_MCP" = true ]; then
+    cp "$PROJECT_DIR/deploy/com.learning-log.mcp.plist" "$LAUNCH_AGENTS_DIR/"
+    launchctl load "$LAUNCH_AGENTS_DIR/com.learning-log.mcp.plist"
+fi
+
 echo ""
 echo "⏳ 等待服务就绪..."
 sleep 3
 
 # 验证
+MCP_PORT=8010
 echo ""
 echo "📊 验证服务状态..."
 
@@ -52,6 +65,10 @@ check_backend() {
 
 check_frontend() {
     curl -s http://localhost:3000 > /dev/null 2>&1
+}
+
+check_mcp() {
+    curl -s -o /dev/null -w '%{http_code}' http://localhost:$MCP_PORT/sse 2>/dev/null | grep -q '200'
 }
 
 if check_backend; then
@@ -68,6 +85,16 @@ else
     echo "   ⚠️  前端 (3000) — 启动中（首次 npm run dev 较慢），查看日志: tail -f $RUNTIME_DIR/frontend.log"
 fi
 
+if [ "$INSTALL_MCP" = true ]; then
+    sleep 2
+    if check_mcp; then
+        echo "   ✅ MCP (${MCP_PORT}) — 运行中"
+        echo "      配置: { \"type\": \"sse\", \"url\": \"http://localhost:${MCP_PORT}/sse\" }"
+    else
+        echo "   ⚠️  MCP (${MCP_PORT}) — 启动中，查看日志: tail -f $RUNTIME_DIR/mcp.log"
+    fi
+fi
+
 echo ""
 echo "✅ 安装完成！"
 echo ""
@@ -78,6 +105,11 @@ echo "│  系统重启后自动恢复                          │"
 echo "│                                             │"
 echo "│  前端: http://localhost:3000                 │"
 echo "│  后端: http://localhost:8002/docs            │"
+
+MCP_LINE="│  MCP:  http://localhost:${MCP_PORT}/sse"
+if [ "$INSTALL_MCP" = true ]; then
+    echo "$MCP_LINE                │"
+fi
 echo "│                                             │"
 echo "│  管理命令:                                   │"
 echo "│    learnlog service status   查看状态        │"

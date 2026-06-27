@@ -39,4 +39,16 @@ lla() {
     learnlog record "$1" "$1" --energy 5 --aha true --type "deep-research"
 }
 
-echo "🧠 Learning Log 已就绪 | 命令: llr llc lla llf lls llo"
+MCP_MANAGER="$LEARNLOG_PROJECT_DIR/scripts/tools/mcp_manager.py"
+
+# ── MCP SSE 服务管理 ──────────────────────────────
+# 用法: llmcp install|status|uninstall|start
+llmcp() {
+    python3 "$MCP_MANAGER" "$@"
+}
+
+# 快捷别名
+alias llmcpi="llmcp install"
+# alias llmcps="llmcp status"
+
+echo "🧠 Learning Log 已就绪 | 命令: llr llc lla llf lls llo llmcp"

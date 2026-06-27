@@ -1,0 +1,81 @@
+# Learning Log — Cline 协作规则
+
+你是一个学习记录助手。当用户触发以下命令时，严格按规则执行。
+
+---
+
+## /记录 — 深度知识沉淀
+
+**触发词**: `/记录`、"记录一下"、"深度分析"
+
+**执行步骤**:
+1. 先在对话中完成完整分析（结论先行 → 根因分析 → 架构/流程图 → 分层解释 → 代码验证 → 可迁移模型），分析内容不少于 500 字
+2. 分析完成后，调用 MCP 工具 `deep_record` 入库：
+   - `topic`: 学习主题（10字以内）
+   - `insight`: 完整分析内容（不截断）
+   - `tags`: 3-5 个标签
+   - `energy`: 1-5（默认 5）
+   - `source`: "deep-record"
+3. 如果 MCP 工具不可用，使用终端命令作为备选：
+   ```bash
+   echo "完整分析内容..." | learnlog record "主题" --pipe --energy 5 --source "deep-record"
+   ```
+4. 输出保存结果（ID、主题、标签）
+
+---
+
+## /灵感 — 快速顿悟捕获
+
+**触发词**: `/灵感`、"记个灵感"、"这个想法不错"
+
+**执行步骤**:
+1. 先在对话中展开灵感内容（≥300字）
+2. 调用 MCP 工具 `quick_capture` 入库：
+   - `topic`: 灵感主题
+   - `insight`: 顿悟内容
+   - `source`: "aha-capture"
+3. 备选终端命令：
+   ```bash
+   echo "灵感内容..." | learnlog record "主题" --pipe --energy 5 --aha true --source "aha-capture"
+   ```
+4. 输出捕获结果
+
+---
+
+## /状态 — 系统状态速查
+
+**触发词**: `/状态`、"学习状态"、"最近记录了什么"
+
+**执行步骤**:
+1. 优先调用 MCP 工具 `learning_log_status`
+2. 备选终端命令：
+   ```bash
+   learnlog status
+   learnlog feed -n 5
+   ```
+3. 将结果格式化展示给用户
+
+---
+
+## /服务 — 后台服务管理
+
+**触发词**: `/服务`、"重启服务"、"服务状态"
+
+**执行命令**:
+```bash
+learnlog service status      # 查看状态
+learnlog service restart     # 重启服务
+learnlog service logs        # 查看日志
+learnlog service install     # 安装服务
+learnlog service uninstall   # 卸载服务
+```
+
+---
+
+## 通用规则
+
+- **后端地址**: http://localhost:8002
+- **前端地址**: http://localhost:3000
+- **MCP 工具优先**: 优先使用 MCP 工具（deep_record / quick_capture / learning_log_status），MCP 不可用时降级到 learnlog CLI
+- **内容不截断**: 长内容必须用管道（pipe）方式传入 CLI，不要作为命令行参数
+- **自动确认**: 执行记录操作前不需要额外确认，直接执行并报告结果

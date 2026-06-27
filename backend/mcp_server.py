@@ -23,6 +23,13 @@ from mcp.types import Tool, TextContent
 import requests
 from dotenv import load_dotenv
 
+# ── CLI Argument Parsing (simple, before any imports that might fail) ──
+SSE_MODE = "--sse" in sys.argv
+SSE_PORT = 8010
+for i, arg in enumerate(sys.argv):
+    if arg == "--port" and i + 1 < len(sys.argv):
+        SSE_PORT = int(sys.argv[i + 1])
+
 # ── Path Resolution (absolute, not relative) ──────
 PROJECT_DIR = os.environ.get(
     "LEARNLOG_PROJECT_DIR",
@@ -234,6 +241,50 @@ async def list_tools() -> list[Tool]:
                 "type": "object",
                 "properties": {}
             }
+        ),
+        Tool(
+            name="deep_record",
+            description="深度知识沉淀。将 AI 已在对话中完成的完整分析内容（六步法全文）直接保存。所有内容包括结论、案例、原理、图示、代码、STAR复盘，全部放入 insight 字段。等同于 /记录 skill。",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "topic": {"type": "string", "description": "学习主题（简短标题，10字以内）"},
+                    "insight": {"type": "string", "description": "完整的六步法分析全文（≥2000字），包含：核心结论、场景案例、第一性原理、Mermaid图示、代码实现、STAR复盘"},
+                    "tags": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "标签列表（3-5个关键词）"
+                    },
+                    "energy": {
+                        "type": "integer",
+                        "description": "精力消耗 1-5",
+                        "default": 5
+                    },
+                    "source": {
+                        "type": "string",
+                        "description": "来源",
+                        "default": "deep-record"
+                    }
+                },
+                "required": ["topic", "insight"]
+            }
+        ),
+        Tool(
+            name="quick_capture",
+            description="快速捕获顿悟/灵感。自动标记 energy=5 和 aha=true。内容完整展开后全部放入 insight。等同于 /灵感 skill。",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "topic": {"type": "string", "description": "灵感/洞察主题"},
+                    "insight": {"type": "string", "description": "顿悟内容（完整展开，≥500字，含核心洞察+类比+应用场景+可迁移模式）"},
+                    "source": {
+                        "type": "string",
+                        "description": "来源",
+                        "default": "aha-capture"
+                    }
+                },
+                "required": ["topic", "insight"]
+            }
         )
     ]
 
@@ -308,6 +359,64 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 
         return [TextContent(type="text", text=f"批量处理完成\n\n成功: {success_count}/{len(entries)}\n\n{chr(10).join(results)}")]
 
+    elif name == "deep_record":
+        topic = arguments.get("topic", "")
+        insight = arguments.get("insight", "")
+        if not topic or not insight:
+            return [TextContent(type="text", text="❌ Error: topic and insight are required")]
+
+        # Build entry payload — insight 包含完整六步法全文
+        energy = arguments.get("energy", 5)
+        entry_data = {
+            "topic": topic,
+            "insight": insight,
+            "star_situation": "AI 对话中的深度分析",
+            "star_task": "系统化理解并沉淀核心知识",
+            "star_action": "六步分析法：结论先行×根因分析×架构图×分层解释×代码验证×可迁移模型",
+            "star_result": insight[:500] if len(insight) > 500 else insight,
+            "topic_tag_id": None,
+            "research_type": "deep-research",
+            "energy_level": energy,
+            "aha_moment": True,
+            "source": arguments.get("source", "deep-record"),
+            "custom_tags": arguments.get("tags", []),
+        }
+
+        entry_id = save_to_backend(entry_data)
+        if entry_id > 0:
+            return [TextContent(type="text", text=f"✅ 深度记录已保存！\n\n📝 详情:\n- ID: {entry_id}\n- 主题: {topic}\n- 精力: {'⚡' * energy}\n\n💡 前端查看: http://localhost:3000")]
+        else:
+            return [TextContent(type="text", text="❌ 保存失败，请检查后端服务。")]
+
+    elif name == "quick_capture":
+        topic = arguments.get("topic", "")
+        insight = arguments.get("insight", "")
+        if not topic or not insight:
+            return [TextContent(type="text", text="❌ Error: topic and insight are required")]
+
+        source = arguments.get("source", "aha-capture")
+
+        entry_data = {
+            "topic": topic,
+            "insight": insight,
+            "star_situation": "对话中产生的顿悟/灵感",
+            "star_task": "即时捕获关键洞察",
+            "star_action": "快速记录灵感要点",
+            "star_result": insight[:200] if len(insight) > 200 else insight,
+            "topic_tag_id": None,
+            "research_type": "deep-research",
+            "energy_level": 5,
+            "aha_moment": True,
+            "source": source,
+            "custom_tags": ["aha-moment", "quick-capture"],
+        }
+
+        entry_id = save_to_backend(entry_data)
+        if entry_id > 0:
+            return [TextContent(type="text", text=f"💡 灵感已捕获！\n\n📝 详情:\n- ID: {entry_id}\n- 主题: {topic}\n- 精力: ⚡⚡⚡⚡⚡\n- 类型: 顿悟\n\n💡 前端查看: http://localhost:3000")]
+        else:
+            return [TextContent(type="text", text="❌ 保存失败，请检查后端服务。")]
+
     else:
         raise ValueError(f"Unknown tool: {name}")
 
@@ -341,12 +450,53 @@ async def scheduled_capture():
 
 # ── Main ─────────────────────────────────────────
 
+# ── SSE Transport ─────────────────────────────
+
+async def run_sse_server(port: int):
+    """Run MCP server in SSE (HTTP) mode — accessible by any MCP client"""
+    from mcp.server.sse import SseServerTransport
+    from starlette.applications import Starlette
+    from starlette.routing import Route
+    from starlette.middleware import Middleware
+    from starlette.middleware.cors import CORSMiddleware
+    import uvicorn
+
+    sse = SseServerTransport("/messages/")
+
+    async def handle_sse(request):
+        async with sse.connect_sse(request.scope, request.receive, request._send) as streams:
+            await server.run(streams[0], streams[1], server.create_initialization_options())
+
+    async def handle_messages(request):
+        await sse.handle_post_message(request.scope, request.receive, request._send)
+
+    app = Starlette(
+        debug=False,
+        routes=[
+            Route("/sse", endpoint=handle_sse),
+            Route("/messages/", endpoint=handle_messages, methods=["POST"]),
+        ],
+        middleware=[
+            Middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]),
+        ]
+    )
+
+    print(f"🌐 MCP SSE Server 启动于 http://0.0.0.0:{port}/sse", file=sys.stderr)
+    print(f"📋 客户端配置: {{ \"type\": \"sse\", \"url\": \"http://localhost:{port}/sse\" }}", file=sys.stderr)
+    config = uvicorn.Config(app, host="0.0.0.0", port=port, log_level="info")
+    server_uv = uvicorn.Server(config)
+    await server_uv.serve()
+
+
+# ── Main ─────────────────────────────────────────
+
 async def main():
     print("=" * 60, file=sys.stderr)
-    print("🚀 Learning Log MCP Server v2.0", file=sys.stderr)
+    print("🚀 Learning Log MCP Server v3.0 (Multi-Transport)", file=sys.stderr)
     print(f"   Project: {PROJECT_DIR}", file=sys.stderr)
     print(f"   Backend: {BACKEND_URL}", file=sys.stderr)
     print(f"   AI:      {AI_MODEL}", file=sys.stderr)
+    print(f"   Mode:    {'SSE (HTTP)' if SSE_MODE else 'STDIO'}", file=sys.stderr)
     print("=" * 60, file=sys.stderr)
 
     # Auto-start backend on launch
@@ -355,10 +505,13 @@ async def main():
     # Background watch scanner
     asyncio.create_task(scheduled_capture())
 
-    # Run MCP stdio server
-    from mcp.server.stdio import stdio_server
-    async with stdio_server() as (read_stream, write_stream):
-        await server.run(read_stream, write_stream, server.create_initialization_options())
+    if SSE_MODE:
+        await run_sse_server(SSE_PORT)
+    else:
+        # Default: stdio mode (for Claude Code via .mcp.json)
+        from mcp.server.stdio import stdio_server
+        async with stdio_server() as (read_stream, write_stream):
+            await server.run(read_stream, write_stream, server.create_initialization_options())
 
 
 if __name__ == "__main__":

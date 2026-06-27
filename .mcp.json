@@ -1,17 +1,3 @@
 {
-  "mcpServers": {
-    "learning-log": {
-      "type": "stdio",
-      "command": "python3",
-      "args": [
-        "/Users/mingxilv/PycharmProjects/learning-log/backend/mcp_server.py"
-      ],
-      "env": {
-        "LEARNLOG_PROJECT_DIR": "/Users/mingxilv/PycharmProjects/learning-log",
-        "BACKEND_URL": "http://localhost:8002",
-        "AI_API_URL": "http://localhost:11434/api/generate",
-        "AI_MODEL": "qwen2.5"
-      }
-    }
-  }
+  "mcpServers": {}
 }

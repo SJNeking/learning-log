@@ -7,8 +7,107 @@
 ```
 FastAPI :8002  →  SQLite (data/learning-log.db)
 Next.js :3000  →  时间线 / ECharts图谱 / Feed筛选
-MCP Server     →  capture_learning, batch_capture, status
+MCP Server     →  5 个工具: capture_learning, batch_capture, learning_log_status,
+                   deep_record, quick_capture
 ```
+
+## 多 AI 代理接入
+
+MCP Server 支持 **两种传输模式**，覆盖所有主流 AI 编程代理：
+
+| 模式 | 协议 | 适用客户端 | 配置方式 |
+|------|------|-----------|---------|
+| STDIO | 标准输入输出 | Claude Code, Cursor | `.mcp.json` 或 IDE 设置 |
+| SSE | HTTP 服务 | **任意** MCP 客户端 | `{ "type": "sse", "url": "..." }` |
+
+### 方式 1：STDIO（Claude Code 默认）
+
+项目根目录 `.mcp.json` 已配置，Claude Code 自动加载：
+```json
+{
+  "mcpServers": {
+    "learning-log": {
+      "type": "stdio",
+      "command": "python3",
+      "args": ["/absolute/path/to/backend/mcp_server.py"]
+    }
+  }
+}
+```
+
+### 方式 2：SSE 持久化服务（推荐 — 通用接入）
+
+安装 MCP SSE Server 为后台服务后，**任何** AI 代理都能通过 HTTP 连接：
+
+```bash
+# 安装 MCP 持久化服务（开机自启）
+llmcp install
+
+# 查看状态
+llmcp status
+```
+
+安装后，在其他 AI 代理中配置：
+
+**Cline (VS Code)** — 在 `~/.config/cline/mcp_settings.json` 或 VS Code 设置中添加：
+```json
+{
+  "mcpServers": {
+    "learning-log": {
+      "type": "sse",
+      "url": "http://localhost:8010/sse"
+    }
+  }
+}
+```
+
+**Cursor** — 在 Cursor Settings > Features > MCP 中添加：
+```json
+{
+  "type": "sse",
+  "url": "http://localhost:8010/sse"
+}
+```
+
+**Continue.dev** — 在 `~/.continue/config.json` 中添加：
+```json
+{
+  "mcpServers": [
+    {
+      "name": "learning-log",
+      "type": "sse",
+      "url": "http://localhost:8010/sse"
+    }
+  ]
+}
+```
+
+> 💡 MCP SSE 服务随系统启动自动运行，关闭 IDE/终端不影响。
+> 管理命令: `llmcp install|status|uninstall|start`
+
+### 方式 3：HTTP API（通用 — 任何 AI 均可）
+
+无需 MCP 协议，任何能发 HTTP 请求的 AI 都可以直接调用后端 API：
+```
+POST http://localhost:8002/api/entries
+Content-Type: application/json
+{
+  "topic": "...",
+  "insight": "...",
+  "energy_level": 5,
+  "aha_moment": true
+}
+```
+
+## MCP 工具
+
+| 工具 | 对应 Skill | 功能 |
+|------|-----------|------|
+| `capture_learning` | — | 自动分析并保存学习内容（调用 AI 分析） |
+| `deep_record` | `/记录` | 直接保存已有分析内容（不二次分析） |
+| `quick_capture` | `/灵感` | 快速捕获顿悟（energy=5, aha=true） |
+| `batch_capture` | — | 批量处理多条内容 |
+| `learning_log_status` | `/状态` | 查看系统状态 |
 
 ## 关键命令
 
