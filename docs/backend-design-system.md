@@ -323,11 +323,11 @@ class LearningEntryCreate(BaseModel):
     diagram: Optional[str] = None            # Mermaid 图示
     code_snippet: Optional[str] = None       # 代码实现
 
-    # STAR 法则（全部必填）
-    star_situation: str                      # 情境
-    star_task: str                           # 任务
-    star_action: str                         # 行动
-    star_result: str                         # 结果
+    # STAR 法则（可选，默认 None）
+    star_situation: Optional[str] = None     # 情境
+    star_task: Optional[str] = None          # 任务
+    star_action: Optional[str] = None        # 行动
+    star_result: Optional[str] = None        # 结果
 
     # 标签维度
     topic_tag_id: Optional[str] = None       # 主题标签
@@ -997,7 +997,7 @@ AI_MODEL=qwen2.5
 | **SQLite** 而非 PostgreSQL | 单用户本地使用，零配置，数据库文件可直接备份 |
 | **反向域名标签 ID** | 全局唯一、自描述、支持层级解析、可做前缀查询 |
 | **JSON 字符串存数组** | SQLite 无数组类型，json.dumps/loads 序列化 |
-| **STAR 法则强制** | 保证每条记录的结构化质量 |
+| **STAR 法则可选** | 保留结构但不强制，空值在前端自动隐藏 |
 | **双重去重** | 应用层幂等 + 数据库唯一索引，防止重复录入 |
 | **MCP 侧面通道** | AI 可在对话中直接调用工具录入，无需切换上下文 |
 | **定时扫描 watch 目录** | 支持离线/文件系统触发的内容捕获 |

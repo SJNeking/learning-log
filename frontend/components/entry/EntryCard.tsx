@@ -63,7 +63,7 @@ export default function EntryCard({ entry, onClick }: { entry: Entry; onClick: (
       <div style={{
         flex: 1,
         background: 'var(--bg-secondary)',
-        border: '1px solid #334155',
+        border: '1px solid var(--border-color)',
         borderRadius: '12px',
         padding: '20px',
         transition: 'all 0.2s',

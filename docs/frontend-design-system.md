@@ -63,12 +63,12 @@
 
 ```css
 :root {
-  --bg-primary: #0b1120;          /* 最深背景（页面底色） */
-  --bg-secondary: #0f172a;        /* 次深背景（卡片、面板） */
+  --bg-primary: #0F172A;          /* 最深背景（页面底色） */
+  --bg-secondary: #1E293B;        /* 次深背景（卡片、面板） */
   --bg-panel: rgba(30, 41, 59, 0.6);  /* 半透明面板 */
-  --border-color: rgba(71, 85, 105, 0.3);  /* 通用边框 */
-  --text-primary: #cbd5e1;        /* 正文文字 */
-  --text-secondary: #94a3b8;      /* 次级文字 */
+  --border-color: #334155;        /* 通用边框 */
+  --text-primary: #F1F5F9;        /* 正文文字 */
+  --text-secondary: #94A3B8;      /* 次级文字 */
   --text-muted: #64748b;          /* 弱化文字 */
   --accent-sky: #38bdf8;          /* 天空蓝（主强调色） */
   --accent-emerald: #34d399;      /* 翡翠绿（高能量/成功） */
@@ -394,6 +394,7 @@ frontend/
 │   │   ├── Icons.tsx                 # 统一 SVG 图标库（14 个图标组件）
 │   │   ├── Tag.tsx                   # 标签徽章
 │   │   ├── CopyButton.tsx           # 复制按钮
+│   │   ├── DeleteConfirm.tsx        # 删除确认弹窗
 │   │   └── SearchBar.tsx            # 搜索栏
 │   ├── entry/                        # 条目相关组件
 │   │   ├── EntryCard.tsx            # 时间线卡片
@@ -405,7 +406,8 @@ frontend/
 │   │   ├── FilterBar.tsx            # 研究类型过滤器
 │   │   └── StatsPanel.tsx           # 统计面板
 │   ├── renderers/                    # 渲染器
-│   │   ├── MarkdownRenderer.tsx     # Markdown 渲染（含代码高亮）
+│   │   ├── MarkdownRenderer.tsx     # Markdown 渲染
+│   │   ├── CodeBlock.tsx            # 代码块（macOS 风格标题栏 + 复制按钮）
 │   │   └── MermaidDiagram.tsx       # Mermaid 图表渲染
 │   └── timeline/
 │       └── TimelineView.tsx         # 时间线视图（日期分组 + 交错布局）
@@ -565,7 +567,7 @@ hover: 背景→rgba(255,255,255,0.07), 边框→rgba(255,255,255,0.15)
 
   [底部指标栏]
     ├─ 精力值 (energy_level >= 4 → #34d399, 否则 → #fbbf24)
-    └─ 💡 顿悟时刻 (仅 aha_moment=1 时显示)
+    └─ [灯泡 SVG 图标] 顿悟时刻 (仅 aha_moment=1 时显示)
 ```
 
 ### 12.4 FeedFilterBar.tsx — Feed 过滤器栏
@@ -1012,7 +1014,7 @@ module.exports = nextConfig;
 9. **渲染器**: MarkdownRenderer → MermaidDiagram
 10. **业务组件**: EntryCard → EntryDetail → EntryForm → FilterBar → StatsPanel → Navigation → TimelineView
 11. **页面组装**: `app/layout.tsx` → `app/page.tsx` → `app/graph/page.tsx` → `app/feed/page.tsx`
-12. **启动**: `npm run dev -p 3000`，确保后端在 `localhost:8002` 运行
+12. **启动（生产模式）**: `npm run build && npm start -p 3000`，确保后端在 `localhost:8002` 运行
 
 ---
 
@@ -1020,7 +1022,7 @@ module.exports = nextConfig;
 
 | 原则 | 实现方式 |
 |------|---------|
-| **暗色主题统一** | 所有背景从 `#0b1120` 到 `#1E293B` 深色梯度，无任何亮色模式 |
+| **暗色主题统一** | 所有背景从 `#0F172A` 到 `#1E293B` 深色梯度，无任何亮色模式 |
 | **毛玻璃层次** | 浮动元素（导航、弹窗）统一 backdrop-filter |
 | **语义色编码** | 4 种 accent 色对应不同维度（蓝=交互、绿=高能/通过、黄=中能/研究、紫=架构） |
 | **内联样式优先** | 所有组件使用 inline `style={{}}`，全局 CSS 仅定义变量和重置 |

@@ -30,7 +30,7 @@ export default function SearchBar({
           width: '240px',
           padding: '8px 32px 8px 12px',
           borderRadius: '16px',
-          border: '1px solid #334155',
+          border: '1px solid var(--border-color)',
           background: 'var(--bg-secondary)',
           color: 'var(--text-secondary)',
           fontSize: '13px',

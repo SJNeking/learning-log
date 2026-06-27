@@ -21,7 +21,7 @@ export default function StatsPanel() {
       <div style={{
         flex: 1,
         background: 'var(--bg-secondary)',
-        border: '1px solid #334155',
+        border: '1px solid var(--border-color)',
         borderRadius: '8px',
         padding: '12px 16px',
         textAlign: 'center'
@@ -32,7 +32,7 @@ export default function StatsPanel() {
       <div style={{
         flex: 1,
         background: 'var(--bg-secondary)',
-        border: '1px solid #334155',
+        border: '1px solid var(--border-color)',
         borderRadius: '8px',
         padding: '12px 16px',
         textAlign: 'center'
@@ -43,7 +43,7 @@ export default function StatsPanel() {
       <div style={{
         flex: 1,
         background: 'var(--bg-secondary)',
-        border: '1px solid #334155',
+        border: '1px solid var(--border-color)',
         borderRadius: '8px',
         padding: '12px 16px',
         textAlign: 'center'

@@ -24,7 +24,7 @@ export default function FeedPage() {
 
   return (
     <div style={{ height: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)', display: 'flex', flexDirection: 'column' }}>
-      <header style={{ borderBottom: '1px solid #1E293B', padding: '14px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-primary)', flexShrink: 0 }}>
+      <header style={{ borderBottom: '1px solid var(--bg-secondary)', padding: '14px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-primary)', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <IconList size={24} />
           <span style={{ fontSize: '17px', fontWeight: 600, letterSpacing: '-0.5px', color: 'var(--text-primary)' }}>Feed 流</span>
@@ -42,7 +42,7 @@ export default function FeedPage() {
               style={{
                 padding: '6px 14px',
                 borderRadius: '16px',
-                border: activeFilter === id ? 'none' : '1px solid #334155',
+                border: activeFilter === id ? 'none' : '1px solid var(--border-color)',
                 background: activeFilter === id ? type.color : 'transparent',
                 color: activeFilter === id ? 'var(--bg-primary)' : 'var(--text-muted)',
                 fontSize: '12px',
@@ -74,7 +74,7 @@ export default function FeedPage() {
                   key={entry.id}
                   style={{
                     background: 'var(--bg-secondary)',
-                    border: '1px solid #334155',
+                    border: '1px solid var(--border-color)',
                     borderRadius: '12px',
                     padding: '20px',
                     transition: 'all 0.2s',

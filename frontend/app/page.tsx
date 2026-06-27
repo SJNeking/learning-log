@@ -113,7 +113,7 @@ export default function Home() {
   return (
     <div style={{ height: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* 顶部导航栏 */}
-      <header style={{ borderBottom: '1px solid #1E293B', padding: '14px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-primary)', flexShrink: 0 }}>
+      <header style={{ borderBottom: '1px solid var(--bg-secondary)', padding: '14px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-primary)', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <IconBook size={24} />
@@ -146,7 +146,7 @@ export default function Home() {
       </header>
 
       {/* 统计面板 */}
-      <div style={{ padding: '12px 28px 0', borderBottom: '1px solid #1E293B', flexShrink: 0 }}>
+      <div style={{ padding: '12px 28px 0', borderBottom: '1px solid var(--bg-secondary)', flexShrink: 0 }}>
         <StatsPanel />
       </div>
 

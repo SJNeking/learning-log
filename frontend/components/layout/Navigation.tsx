@@ -39,7 +39,7 @@ export default function Navigation() {
             fontWeight: pathname === item.path ? 600 : 400,
             textDecoration: 'none',
             transition: 'all 0.2s',
-            border: pathname === item.path ? 'none' : '1px solid #334155',
+            border: pathname === item.path ? 'none' : '1px solid var(--border-color)',
             display: 'flex',
             alignItems: 'center',
             gap: '6px'

@@ -16,7 +16,7 @@ export default function FilterBar({
           style={{
             padding: '6px 14px',
             borderRadius: '16px',
-            border: activeFilter?.id === id ? 'none' : '1px solid #334155',
+            border: activeFilter?.id === id ? 'none' : '1px solid var(--border-color)',
             background: activeFilter?.id === id ? type.color : 'transparent',
             color: activeFilter?.id === id ? 'var(--bg-primary)' : 'var(--text-muted)',
             fontSize: '12px',
