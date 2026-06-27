@@ -12,6 +12,8 @@ export default function EntryForm({
   onSave: (data: LearningEntryCreate) => void;
   onCancel: () => void;
 }) {
+  const [submitting, setSubmitting] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const [formData, setFormData] = useState<LearningEntryCreate>({
     topic: '',
     insight: '',
@@ -36,6 +38,7 @@ export default function EntryForm({
 
   useEffect(() => {
     if (entry) {
+      setDirty(false);
       setFormData({
         topic: entry.topic || '',
         insight: entry.insight || '',
@@ -60,16 +63,27 @@ export default function EntryForm({
     }
   }, [entry]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    setSubmitting(true);
+    try {
+      await onSave(formData);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleChange = <K extends keyof LearningEntryCreate>(field: K, value: LearningEntryCreate[K]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    setDirty(true);
   };
 
-  const handleKeyDown = useCallback((e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); }, [onCancel]);
+  const confirmCancel = useCallback(() => {
+    if (dirty && !window.confirm('有未保存的更改，确定关闭？')) return;
+    onCancel();
+  }, [dirty, onCancel]);
+
+  const handleKeyDown = useCallback((e: KeyboardEvent) => { if (e.key === 'Escape') confirmCancel(); }, [confirmCancel]);
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -106,7 +120,8 @@ export default function EntryForm({
             <FormInput value={formData.topic} onChange={v => handleChange('topic', v)} required />
           </FormField>
           <FormField label="核心洞察 (Markdown) *">
-            <FormTextarea value={formData.insight} onChange={v => handleChange('insight', v)} required />
+            <FormTextarea value={formData.insight} onChange={v => handleChange('insight', v)} required
+              onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') handleSubmit(e); }} />
           </FormField>
           <FormField label="研究类型">
             <FormSelect value={formData.research_type} onChange={v => handleChange('research_type', v)} options={[
@@ -136,33 +151,37 @@ export default function EntryForm({
         <div style={{ display: 'flex', gap: '12px', marginTop: '24px', justifyContent: 'flex-end' }}>
           <button
             type="button"
-            onClick={onCancel}
+            onClick={confirmCancel}
+            disabled={submitting}
             style={{
               padding: '10px 20px',
               borderRadius: '8px',
               border: '1px solid var(--border-color)',
               background: 'transparent',
-              color: 'var(--text-secondary)',
+              color: submitting ? 'var(--text-muted)' : 'var(--text-secondary)',
               fontSize: '14px',
-              cursor: 'pointer'
+              cursor: submitting ? 'not-allowed' : 'pointer',
+              opacity: submitting ? 0.5 : 1
             }}
           >
             取消
           </button>
           <button
             type="submit"
+            disabled={submitting}
             style={{
               padding: '10px 20px',
               borderRadius: '8px',
               border: 'none',
-              background: 'var(--accent-sky)',
-              color: 'var(--bg-primary)',
+              background: submitting ? 'var(--border-color)' : 'var(--accent-sky)',
+              color: submitting ? 'var(--text-muted)' : 'var(--bg-primary)',
               fontSize: '14px',
               fontWeight: 600,
-              cursor: 'pointer'
+              cursor: submitting ? 'not-allowed' : 'pointer',
+              opacity: submitting ? 0.6 : 1
             }}
           >
-            {entry ? '保存' : '创建'}
+            {submitting ? (entry ? '保存中...' : '创建中...') : (entry ? '保存' : '创建')}
           </button>
         </div>
       </div>

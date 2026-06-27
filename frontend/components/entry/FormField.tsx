@@ -24,8 +24,8 @@ export function FormInput({ value, onChange, required, placeholder }: { value?: 
   return <input type="text" required={required} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={inputStyle} />;
 }
 
-export function FormTextarea({ value, onChange, required, rows }: { value?: string; onChange: (v: string) => void; required?: boolean; rows?: number }) {
-  return <textarea required={required} value={value} onChange={e => onChange(e.target.value)} rows={rows || 8} style={{ ...inputStyle, fontFamily: 'monospace', resize: 'vertical' }} />;
+export function FormTextarea({ value, onChange, required, rows, onKeyDown }: { value?: string; onChange: (v: string) => void; required?: boolean; rows?: number; onKeyDown?: (e: React.KeyboardEvent) => void }) {
+  return <textarea required={required} value={value} onChange={e => onChange(e.target.value)} onKeyDown={onKeyDown} rows={rows || 8} style={{ ...inputStyle, fontFamily: 'monospace', resize: 'vertical' }} />;
 }
 
 export function FormSelect({ value, onChange, options }: { value?: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
