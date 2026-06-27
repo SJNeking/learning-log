@@ -9,42 +9,83 @@
 ## 快速开始
 
 ```bash
-cd deploy && ./start.sh       # 一键启动前后端
-# 或手动
-cd backend && python3 main.py  # API → localhost:8002
-cd frontend && npm run dev     # UI  → localhost:3000
+# 安装持久化服务（推荐，开机自启）
+learnlog service install
+
+# 或临时启动
+cd deploy && ./start.sh
 ```
 
-## 触发词
+服务启动后：
+- 后端 API: http://localhost:8002
+- 前端 UI: http://localhost:3000
 
-| 命令 | 功能 |
-|------|------|
-| `/记录` | 深度知识沉淀（CIDED 五步 + 六步分析） |
-| `/状态` | 系统状态速查 |
-| `/灵感` | 快速顿悟捕获 |
+## 使用方式
+
+在 **Claude Code** 或 **Cline** 中，用自然语言触发知识记录：
+
+| 你说 | AI 执行 |
+|------|--------|
+| `记录一下` / `帮我记录` | 六步法深度分析 → 结构化入库 |
+| `记个灵感` / `这个想法不错` | 快速捕获顿悟（energy=5, aha=true） |
+| `学习状态` / `最近记录了什么` | 系统状态速查 |
+| `重启服务` / `服务状态` | 后台服务管理 |
+
+> **Claude Code** 也支持 `/记录`、`/灵感`、`/状态` 等斜杠命令。
+
+## 跨项目全局可用
+
+Learning Log 的 MCP 服务配置在**全局级别**，打开任意项目均可使用：
+
+| AI 工具 | 全局配置位置 | 触发方式 |
+|---------|------------|---------|
+| Claude Code | `~/.claude.json` (user scope MCP) | `/记录` 或 "记录一下" |
+| Cline | VS Code `cline_mcp_settings.json` + `customInstructions` | "记录一下" 等自然语言 |
+| 任意 AI | HTTP API `POST localhost:8002/api/entries` | 直接调用 REST API |
 
 ## 架构
 
 ```
-AI 对话 ──→ MCP / CLI / Skill ──→ FastAPI ──→ SQLite
-                                      │
-                         ┌────────────┼────────────┐
-                         ▼            ▼            ▼
-                    时间线视图    ECharts图谱    Feed筛选
+┌─────────────────────────────────────────────────────┐
+│  AI 代理层                                          │
+│  Claude Code · Cline · learnlog CLI · 任意 HTTP 客户端 │
+└──────────────────────┬──────────────────────────────┘
+                       │ MCP / HTTP / CLI
+┌──────────────────────▼──────────────────────────────┐
+│  服务层                                             │
+│  MCP Server (stdio/SSE, 5 tools)                    │
+│  FastAPI Backend (:8002, launchd 持久化)             │
+│  Next.js Frontend (:3000, launchd 持久化)            │
+└──────────────────────┬──────────────────────────────┘
+                       │
+┌──────────────────────▼──────────────────────────────┐
+│  数据层                                             │
+│  SQLite · 四层标签体系 (discipline→subject→topic→entry) │
+└─────────────────────────────────────────────────────┘
 ```
+
+## MCP 工具
+
+| 工具 | 功能 |
+|------|------|
+| `deep_record` | 深度知识沉淀（六步法全文 → insight 字段） |
+| `quick_capture` | 快速顿悟捕获（energy=5, aha=true） |
+| `capture_learning` | 自动分析并保存学习内容 |
+| `batch_capture` | 批量处理多条内容 |
+| `learning_log_status` | 查看系统状态 |
 
 ## 目录结构
 
 | 目录 | 说明 |
 |------|------|
 | `backend/` | FastAPI + SQLite + MCP Server |
-| `frontend/` | Next.js 14 时间线可视化 |
-| `scripts/tools/` | 可复用工具 |
-| `scripts/migrations/` | Schema 迁移记录 |
-| `scripts/seeds/` | 种子数据 |
-| `deploy/` | 部署脚本 |
-| `install/` | 用户接入（Shell 集成） |
-| `docs/` | 完整设计文档 |
+| `frontend/` | Next.js 14 时间线 / ECharts 图谱 / Feed 筛选 |
+| `.claude/skills/` | 项目级 Skill（记录 / 灵感 / 状态 / 服务 / 命令） |
+| `scripts/tools/` | 可复用工具（auto_record, context_manager...） |
+| `scripts/seeds/` | 种子数据（四层标签体系） |
+| `deploy/` | launchd plist + 部署脚本 |
+| `install/` | Shell 集成（learnlog CLI） |
+| `docs/` | 设计文档 + 里程碑报告 |
 
 ## 文档
 
@@ -53,3 +94,4 @@ AI 对话 ──→ MCP / CLI / Skill ──→ FastAPI ──→ SQLite
 - [AI 协作机制](docs/ai-collaboration-design.md) — 人机协作协议
 - [AI 提示词卡片](docs/ai-prompt-card.md) — 粘贴到任何 AI 对话即可接入
 - [接入指南](install/README.md) — Shell 集成 + MCP 配置
+- [里程碑报告](docs/reports/weekly/report-2026-W26.md) — 项目 v1.0 四阶段演进
