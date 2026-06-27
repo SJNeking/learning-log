@@ -22,6 +22,7 @@
 | P5.3 | 组件瘦身 — 提取 `DeleteConfirm`(61行) + `CodeBlock`(49行) + 样式常量 | ✅ 完成 |
 | P5.4 | 颜色 CSS 变量 — 109 处 hex → `var(--xxx)`，同步 `globals.css` | ✅ 完成 |
 | P6.1 | API 错误处理 — `checkResponse` 函数 + 4 处 `.catch()` | ✅ 完成 |
+| P6.2 | Toast 通知系统 — `useToast` hook + Context Provider + 3 处集成 | ✅ 完成 |
 
 ### 1.2 当前文件清单
 
@@ -69,7 +70,7 @@ frontend/
 | 1 | **API 无 `response.ok` 检查**: 所有方法静默处理 4xx/5xx | 🔴 高 | `lib/api.ts` | ✅ 已修复 |
 | 2 | **4 处缺失 `.catch()`**: API 失败对用户不可见 | 🔴 高 | `page.tsx`, `feed/page.tsx`, `graph/page.tsx`, `StatsPanel.tsx` | ✅ 已修复 |
 | 3 | **无 Error Boundary**: 渲染崩溃导致白屏 | 🔴 高 | 全项目 | ⏳ P6.3 |
-| 4 | **无 Toast 通知**: 创建/编辑/删除无反馈 | 🟡 中 | `EntryDetail.tsx`, `EntryForm.tsx`, `DeleteConfirm.tsx` | ⏳ P6.2 |
+| 4 | **无 Toast 通知**: 创建/编辑/删除无反馈 | 🟡 中 | `EntryDetail.tsx`, `EntryForm.tsx`, `DeleteConfirm.tsx` | ✅ 已修复 |
 | 5 | **无键盘可访问性**: 无 tabIndex/keyDown/aria | 🟡 中 | 全部交互组件 | ⏳ P7.1 |
 | 6 | **~20 处残余硬编码色值**: 主要是 accent 色在 JS 中 | 🟡 中 | 7 个组件 | ⏳ P6.4 |
 | 7 | **未使用的导入/状态**: 死代码残留 | 🟡 中 | `page.tsx:8`(FilterBar), `page.tsx:23`(offset), `MarkdownRenderer.tsx:5`(CopyButton) | ⏳ P6.5 |

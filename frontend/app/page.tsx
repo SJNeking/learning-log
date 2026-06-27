@@ -10,6 +10,7 @@ import TimelineView from '@/components/timeline/TimelineView';
 import EntryDetail from '@/components/entry/EntryDetail';
 import EntryForm from '@/components/entry/EntryForm';
 import { IconBook, IconHourglass, IconEmpty, IconLoader } from '@/components/ui/Icons';
+import { useToast } from '@/hooks/useToast';
 import type { Entry, LearningEntryCreate } from '@/types';
 
 export default function Home() {
@@ -37,13 +38,16 @@ export default function Home() {
   }, []);
 
   const loadEntriesRef = useRef<(reset?: boolean) => void>();
+  const { addToast } = useToast();
 
   const handleCreate = async (data: LearningEntryCreate) => {
     try {
       await api.entries.create(data);
+      addToast('记录创建成功', 'success');
       setIsCreating(false);
       loadEntries(true);
     } catch (err) {
+      addToast('创建失败: ' + (err instanceof Error ? err.message : '未知错误'), 'error');
       console.error('Create failed:', err);
     }
   };

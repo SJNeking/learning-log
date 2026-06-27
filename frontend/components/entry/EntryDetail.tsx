@@ -8,11 +8,13 @@ import DeleteConfirm from '@/components/entry/DeleteConfirm';
 import { IconLightbulb, IconTag } from '@/components/ui/Icons';
 import { api } from '@/lib/api';
 import { getResearchTypeInfo } from '@/lib/constants';
+import { useToast } from '@/hooks/useToast';
 import type { Entry, LearningEntryCreate } from '@/types';
 
 export default function EntryDetail({ entry, onClose, onRefresh }: { entry: Entry | null; onClose: () => void; onRefresh?: () => void }) {
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const { addToast } = useToast();
   const markdownContent = useMemo(() => {
     if (!entry) return '';
     let md = `### 核心洞察\n\n${entry.insight}\n\n`;
@@ -35,9 +37,11 @@ export default function EntryDetail({ entry, onClose, onRefresh }: { entry: Entr
     if (!entry) return;
     try {
       await api.entries.delete(entry.id);
+      addToast('已删除', 'success');
       onRefresh?.();
       onClose();
     } catch (err) {
+      addToast('删除失败: ' + (err instanceof Error ? err.message : '未知错误'), 'error');
       console.error('Delete failed:', err);
     }
   };
@@ -46,10 +50,12 @@ export default function EntryDetail({ entry, onClose, onRefresh }: { entry: Entr
     if (!entry) return;
     try {
       await api.entries.update(entry.id, data);
+      addToast('更新成功', 'success');
       setIsEditing(false);
       onRefresh?.();
       onClose();
     } catch (err) {
+      addToast('更新失败: ' + (err instanceof Error ? err.message : '未知错误'), 'error');
       console.error('Update failed:', err);
     }
   };

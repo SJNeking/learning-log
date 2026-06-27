@@ -411,6 +411,8 @@ frontend/
 │   │   └── MermaidDiagram.tsx       # Mermaid 图表渲染
 │   └── timeline/
 │       └── TimelineView.tsx         # 时间线视图（日期分组 + 交错布局）
+├── hooks/                            # 自定义 Hooks（P6.2 新增）
+│   └── useToast.tsx                  # Toast 通知 Context → Provider + Hook + 渲染
 ├── lib/                              # 工具库
 │   ├── api.ts                        # 统一 API 客户端（所有 fetch 调用）
 │   └── constants.ts                  # 常量定义（研究类型等）
