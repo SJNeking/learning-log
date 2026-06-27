@@ -16,6 +16,13 @@ import type {
   Stats,
 } from '@/types';
 
+export function fetchWithTimeout(url: string, timeout = 10000, signal?: AbortSignal): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  if (signal) signal.addEventListener('abort', () => controller.abort());
+  return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(id));
+}
+
 function checkResponse<T>(r: Response): Promise<T> {
   if (!r.ok) {
     return r.json().then(e => Promise.reject(new Error(e.detail || `HTTP ${r.status}`)));
@@ -34,11 +41,11 @@ export interface FeedParams {
 
 export const api = {
   entries: {
-    list: (limit = 50, offset = 0) =>
-      fetch(`${BASE_URL}/api/entries?limit=${limit}&offset=${offset}`).then(r => checkResponse<Entry[]>(r)),
+    list: (limit = 50, offset = 0, signal?: AbortSignal) =>
+      fetchWithTimeout(`${BASE_URL}/api/entries?limit=${limit}&offset=${offset}`, 10000, signal).then(r => checkResponse<Entry[]>(r)),
 
-    get: (id: number) =>
-      fetch(`${BASE_URL}/api/entries/${id}`).then(r => checkResponse<Entry>(r)),
+    get: (id: number, signal?: AbortSignal) =>
+      fetchWithTimeout(`${BASE_URL}/api/entries/${id}`, 10000, signal).then(r => checkResponse<Entry>(r)),
 
     create: (data: LearningEntryCreate) =>
       fetch(`${BASE_URL}/api/entries`, {
@@ -57,54 +64,54 @@ export const api = {
     delete: (id: number) =>
       fetch(`${BASE_URL}/api/entries/${id}`, { method: 'DELETE' }).then(r => checkResponse<any>(r)),
 
-    feed: (params?: FeedParams) => {
+    feed: (params?: FeedParams, signal?: AbortSignal) => {
       if (!params || Object.keys(params).length === 0) {
-        return fetch(`${BASE_URL}/api/entries/feed`).then(r => checkResponse<Entry[]>(r));
+        return fetchWithTimeout(`${BASE_URL}/api/entries/feed`, 10000, signal).then(r => checkResponse<Entry[]>(r));
       }
       const qs = new URLSearchParams(
         Object.entries(params).filter(([, v]) => v !== undefined && v !== null)
       ).toString();
-      return fetch(`${BASE_URL}/api/entries/feed?${qs}`).then(r => checkResponse<Entry[]>(r));
+      return fetchWithTimeout(`${BASE_URL}/api/entries/feed?${qs}`, 10000, signal).then(r => checkResponse<Entry[]>(r));
     },
   },
 
   tags: {
-    list: (category?: string) => {
+    list: (category?: string, signal?: AbortSignal) => {
       const qs = category ? `?category=${category}` : '';
-      return fetch(`${BASE_URL}/api/tags${qs}`).then(r => checkResponse<Tag[]>(r));
+      return fetchWithTimeout(`${BASE_URL}/api/tags${qs}`, 10000, signal).then(r => checkResponse<Tag[]>(r));
     },
 
-    tree: () =>
-      fetch(`${BASE_URL}/api/tags/tree`).then(r => checkResponse<TagNode[]>(r)),
+    tree: (signal?: AbortSignal) =>
+      fetchWithTimeout(`${BASE_URL}/api/tags/tree`, 10000, signal).then(r => checkResponse<TagNode[]>(r)),
 
-    entries: (tagId: string, researchType?: string) => {
+    entries: (tagId: string, researchType?: string, signal?: AbortSignal) => {
       const qs = researchType ? `?research_type=${researchType}` : '';
-      return fetch(`${BASE_URL}/api/tags/${tagId}/entries${qs}`).then(r => checkResponse<Entry[]>(r));
+      return fetchWithTimeout(`${BASE_URL}/api/tags/${tagId}/entries${qs}`, 10000, signal).then(r => checkResponse<Entry[]>(r));
     },
   },
 
   tagLinks: {
-    list: (sourceTagId?: string) => {
+    list: (sourceTagId?: string, signal?: AbortSignal) => {
       const qs = sourceTagId ? `?source_tag_id=${sourceTagId}` : '';
-      return fetch(`${BASE_URL}/api/tag-links${qs}`).then(r => checkResponse<TagLink[]>(r));
+      return fetchWithTimeout(`${BASE_URL}/api/tag-links${qs}`, 10000, signal).then(r => checkResponse<TagLink[]>(r));
     },
   },
 
-  graph: () =>
-    fetch(`${BASE_URL}/api/graph`).then(r => checkResponse<GraphData>(r)),
+  graph: (signal?: AbortSignal) =>
+    fetchWithTimeout(`${BASE_URL}/api/graph`, 10000, signal).then(r => checkResponse<GraphData>(r)),
 
-  stats: () =>
-    fetch(`${BASE_URL}/api/stats`).then(r => checkResponse<Stats>(r)),
+  stats: (signal?: AbortSignal) =>
+    fetchWithTimeout(`${BASE_URL}/api/stats`, 10000, signal).then(r => checkResponse<Stats>(r)),
 
   projects: {
-    list: (projectType?: string) => {
+    list: (projectType?: string, signal?: AbortSignal) => {
       const qs = projectType ? `?project_type=${projectType}` : '';
-      return fetch(`${BASE_URL}/api/projects${qs}`).then(r => checkResponse<Tag[]>(r));
+      return fetchWithTimeout(`${BASE_URL}/api/projects${qs}`, 10000, signal).then(r => checkResponse<Tag[]>(r));
     },
 
-    entries: (projectId: string, researchType?: string) => {
+    entries: (projectId: string, researchType?: string, signal?: AbortSignal) => {
       const qs = researchType ? `?research_type=${researchType}` : '';
-      return fetch(`${BASE_URL}/api/projects/${projectId}/entries${qs}`).then(r => checkResponse<Entry[]>(r));
+      return fetchWithTimeout(`${BASE_URL}/api/projects/${projectId}/entries${qs}`, 10000, signal).then(r => checkResponse<Entry[]>(r));
     },
   },
 };

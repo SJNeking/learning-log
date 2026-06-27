@@ -31,10 +31,12 @@ export default function Home() {
   const hasMoreRef = useRef(true);
 
   useEffect(() => {
+    const controller = new AbortController();
     if (!hasLoadedRef.current) {
       hasLoadedRef.current = true;
-      loadEntries(true);
+      loadEntries(true, controller.signal);
     }
+    return () => controller.abort();
   }, []);
 
   const loadEntriesRef = useRef<(reset?: boolean) => void>();
@@ -52,13 +54,13 @@ export default function Home() {
     }
   };
 
-  const loadEntries = (reset = false) => {
+  const loadEntries = (reset = false, signal?: AbortSignal) => {
     if (isLoadingRef.current) return;
     isLoadingRef.current = true;
     setLoading(reset);
 
     const currentOffset = reset ? 0 : offsetRef.current;
-    api.entries.list(limit, currentOffset)
+    api.entries.list(limit, currentOffset, signal)
       .then(data => {
         setError(null);
         const newEntries = Array.isArray(data) ? data : [];
@@ -71,6 +73,7 @@ export default function Home() {
         if (newEntries.length < limit) hasMoreRef.current = false;
       })
       .catch(err => {
+        if (err.name === 'AbortError') return;
         setError(err.message || '加载失败');
         console.error('Load entries failed:', err);
       })

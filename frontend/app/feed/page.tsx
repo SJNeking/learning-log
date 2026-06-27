@@ -15,18 +15,21 @@ export default function FeedPage() {
   const [activeFilter, setActiveFilter] = useState<{ type: string; id: string } | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
     setLoading(true);
     setError(null);
     const params = activeFilter ? { research_type: activeFilter.id } : {};
-    api.entries.feed(params)
+    api.entries.feed(params, controller.signal)
       .then(data => {
         setEntries(Array.isArray(data) ? data : []);
       })
       .catch(err => {
+        if (err.name === 'AbortError') return;
         setError(err.message || '加载 Feed 失败');
         console.error('Feed load failed:', err);
       })
       .finally(() => setLoading(false));
+    return () => controller.abort();
   }, [activeFilter]);
 
   return (

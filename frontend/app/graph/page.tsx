@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { api } from '@/lib/api';
 import Navigation from '@/components/layout/Navigation';
 import PageHeader from '@/components/layout/PageHeader';
@@ -13,14 +13,21 @@ export default function GraphPage() {
   const chartRef = useRef<HTMLDivElement>(null);
   const echartsRef = useRef<any>(null);
 
-  useEffect(() => {
-    api.graph()
+  const loadGraph = useCallback((signal: AbortSignal) => {
+    api.graph(signal)
       .then(data => setGraphData(data))
       .catch(err => {
+        if (err.name === 'AbortError') return;
         setError(err.message || '加载图谱失败');
         console.error('Graph load failed:', err);
       });
   }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    loadGraph(controller.signal);
+    return () => controller.abort();
+  }, [loadGraph]);
 
   useEffect(() => {
     if (!graphData || !chartRef.current) return;
