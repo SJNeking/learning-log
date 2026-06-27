@@ -65,12 +65,18 @@ export default function FeedPage() {
 
         {loading ? (
           <div style={{ textAlign: 'center', padding: '80px', color: '#475569' }}>
-            <div style={{ fontSize: '24px', marginBottom: '12px' }}>⏳</div>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style={{ margin: '0 auto 12px' }}>
+              <path d="M5 3H19M5 21H19M6 3V8L12 12L6 16V21M18 3V8L12 12L18 16V21" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
             加载中...
           </div>
         ) : entries.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '100px 20px', color: '#475569' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🌌</div>
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" style={{ margin: '0 auto 16px', opacity: 0.3 }}>
+              <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#475569" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M2 17L12 22L22 17" stroke="#475569" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M2 12L12 17L22 12" stroke="#475569" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
             <p>暂无记录</p>
           </div>
         ) : (
@@ -102,7 +108,11 @@ export default function FeedPage() {
                     {entry.topic_tag_id && <Tag label={entry.topic_tag_id.split('.').pop() || ''} color="#38bdf8" />}
                     {entry.research_type && <Tag label={rType.label} color={rType.color} />}
                     <Tag label={`能量 ${entry.energy_level}`} color={entry.energy_level >= 4 ? '#34d399' : '#fb7185'} />
-                    {entry.aha_moment === 1 && <span style={{ fontSize: '14px' }}>💡</span>}
+                    {entry.aha_moment === 1 && (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M9 18H15M10 22H14M12 2C8.13 2 5 5.13 5 9C5 11.38 6.19 13.47 8 14.74V17H16V14.74C17.81 13.47 19 11.38 19 9C19 5.13 15.87 2 12 2Z" stroke="#fbbf24" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
                   </div>
 
                   {/* 标题 */}

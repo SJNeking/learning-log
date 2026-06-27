@@ -166,12 +166,18 @@ export default function Home() {
         }}>
         {loading && entries.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '80px', color: '#475569' }}>
-            <div style={{ fontSize: '24px', marginBottom: '12px' }}>⏳</div>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style={{ margin: '0 auto 12px' }}>
+              <path d="M5 3H19M5 21H19M6 3V8L12 12L6 16V21M18 3V8L12 12L18 16V21" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
             正在加载学习记录...
           </div>
         ) : entries.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '100px 20px', color: '#475569' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🌌</div>
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" style={{ margin: '0 auto 16px', opacity: 0.3 }}>
+              <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#475569" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M2 17L12 22L22 17" stroke="#475569" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M2 12L12 17L22 12" stroke="#475569" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
             <p>暂无灵感记录</p>
           </div>
         ) : (
@@ -179,7 +185,9 @@ export default function Home() {
             <TimelineView entries={filteredEntries} onSelect={setSelected} />
             {loadingMore && (
               <div style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>
-                <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>⏳</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ display: 'inline-block', animation: 'spin 1s linear infinite', verticalAlign: 'middle' }}>
+                  <path d="M12 2V4M12 20V22M4 12H2M22 12H20M6.34 6.34L4.93 4.93M19.07 19.07L17.66 17.66M6.34 17.66L4.93 19.07M19.07 4.93L17.66 6.34" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
                 {' '}加载中...
               </div>
             )}

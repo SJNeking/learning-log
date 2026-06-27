@@ -59,7 +59,9 @@ export default function EntryCard({ entry, onClick }: { entry: Entry; onClick: (
           zIndex: 2
         }} />
         {entry.aha_moment === 1 && (
-          <span style={{ fontSize: '12px', marginTop: '2px' }}>💡</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ marginTop: '2px' }}>
+            <path d="M9 18H15M10 22H14M12 2C8.13 2 5 5.13 5 9C5 11.38 6.19 13.47 8 14.74V17H16V14.74C17.81 13.47 19 11.38 19 9C19 5.13 15.87 2 12 2Z" stroke="#fbbf24" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
         )}
       </div>
 

@@ -17,13 +17,13 @@ export default function EntryDetail({ entry, onClose, onRefresh }: { entry: Entr
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const markdownContent = useMemo(() => {
     if (!entry) return '';
-    let md = `### 💡 核心洞察\n\n${entry.insight}\n\n`;
-    if (entry.diagram) md += `### 📊 架构图表\n\n\`\`\`mermaid\n${entry.diagram}\n\`\`\`\n\n`;
-    if (entry.star_situation) md += `### 📌 情境\n\n${entry.star_situation}\n\n`;
-    if (entry.star_task) md += `### 🎯 任务\n\n${entry.star_task}\n\n`;
-    if (entry.star_action) md += `### ⚡ 行动\n\n${entry.star_action}\n\n`;
-    if (entry.star_result) md += `### ✅ 结果\n\n${entry.star_result}\n\n`;
-    if (entry.code_snippet) md += `### 💻 代码实现\n\n\`\`\`json\n${entry.code_snippet}\n\`\`\`\n\n`;
+    let md = `### 核心洞察\n\n${entry.insight}\n\n`;
+    if (entry.diagram) md += `### 架构图表\n\n\`\`\`mermaid\n${entry.diagram}\n\`\`\`\n\n`;
+    if (entry.star_situation) md += `### 情境\n\n${entry.star_situation}\n\n`;
+    if (entry.star_task) md += `### 任务\n\n${entry.star_task}\n\n`;
+    if (entry.star_action) md += `### 行动\n\n${entry.star_action}\n\n`;
+    if (entry.star_result) md += `### 结果\n\n${entry.star_result}\n\n`;
+    if (entry.code_snippet) md += `### 代码实现\n\n\`\`\`json\n${entry.code_snippet}\n\`\`\`\n\n`;
     return md;
   }, [entry]);
 
@@ -105,7 +105,11 @@ export default function EntryDetail({ entry, onClose, onRefresh }: { entry: Entr
               {entry.topic_tag_id && <Tag label={entry.topic_tag_id.split('.').pop() || ''} color="#38bdf8" />}
               {entry.research_type && <Tag label={rType.label} color={rType.color} />}
               <Tag label={`能量 ${entry.energy_level}`} color={entry.energy_level >= 4 ? '#34d399' : '#fb7185'} />
-              {entry.aha_moment === 1 && <span style={{ fontSize: '14px' }}>💡</span>}
+              {entry.aha_moment === 1 && (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M9 18H15M10 22H14M12 2C8.13 2 5 5.13 5 9C5 11.38 6.19 13.47 8 14.74V17H16V14.74C17.81 13.47 19 11.38 19 9C19 5.13 15.87 2 12 2Z" stroke="#fbbf24" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
             </div>
             <h2 style={{ margin: '0 0 8px 0', fontSize: '20px', fontWeight: 600, color: '#F8FAFC', lineHeight: '1.3' }}>
               {entry.topic}
@@ -181,7 +185,12 @@ export default function EntryDetail({ entry, onClose, onRefresh }: { entry: Entr
           {/* 自定义标签 */}
           {entry.custom_tags && entry.custom_tags.length > 0 && (
             <div>
-              <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>🏷️ 标签</div>
+              <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                  <path d="M7 7H7.01M7 3H5C4.46957 3 3.96086 3.21071 3.58579 3.58579C3.21071 3.96086 3 4.46957 3 5V7M17 7H17.01M7 17H7.01M17 17H17.01M17 21H19C19.5304 21 20.0391 20.7893 20.4142 20.4142C20.7893 20.0391 21 19.5304 21 19V17M12 12H12.01M7 12H7.01M17 12H17.01M12 7H12.01M12 17H12.01" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                标签
+              </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                 {entry.custom_tags.map((t, i) => (
                   <span key={i} style={{ padding: '4px 10px', borderRadius: '16px', background: 'rgba(56,189,248,0.12)', color: '#38bdf8', fontSize: '12px' }}>{t}</span>

@@ -294,6 +294,76 @@ transition: all 0.3s;   /* 较慢（图表预览展开） */
 
 ---
 
+## 十、图标系统 (SVG Icons)
+
+### ⚠️ 强制规范
+
+**禁止使用任何 emoji 作为图标！** 所有图标必须使用统一风格的 SVG 图标。
+
+### 10.1 图标规范
+
+| 属性 | 规范 | 说明 |
+|------|------|------|
+| **格式** | SVG (内联) | 不使用图标字体或 PNG |
+| **尺寸** | 24x24px | 页面标题旁图标 |
+| | 20x20px | 按钮内图标 |
+| | 16x16px | 小图标 |
+| **线宽** | 1.5px | 统一描边宽度 |
+| **配色** | `#38bdf8` | 天空蓝（主色调） |
+| | `#34d399` | 翡翠绿（成功/高能量） |
+| | `#fbbf24` | 琥珀黄（警告/中能量） |
+| | `#a78bfa` | 紫色（架构/映射） |
+| **风格** | 线性 (stroke) | 无填充，仅描边 |
+| **圆角** | round | strokeLinecap="round" strokeLinejoin="round" |
+
+### 10.2 图标库
+
+| 名称 | SVG | 用途 |
+|------|-----|------|
+| **书本** | `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 19.5V4.5C4 3.67 4.67 3 5.5 3H18.5C19.33 3 20 3.67 20 4.5V19.5C20 20.33 19.33 21 18.5 21H5.5C4.67 21 4 20.33 4 19.5Z" stroke="#38bdf8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 7H16" stroke="#38bdf8" stroke-width="1.5" stroke-linecap="round"/><path d="M8 11H14" stroke="#38bdf8" stroke-width="1.5" stroke-linecap="round"/><path d="M8 15H12" stroke="#38bdf8" stroke-width="1.5" stroke-linecap="round"/></svg>` | 学习日志/文档 |
+| **网络节点** | `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="#38bdf8" stroke-width="1.5"/><circle cx="5" cy="6" r="2" stroke="#38bdf8" stroke-width="1.5"/><circle cx="19" cy="6" r="2" stroke="#38bdf8" stroke-width="1.5"/><circle cx="5" cy="18" r="2" stroke="#38bdf8" stroke-width="1.5"/><circle cx="19" cy="18" r="2" stroke="#38bdf8" stroke-width="1.5"/><path d="M7 7L10 10" stroke="#38bdf8" stroke-width="1.5"/><path d="M17 7L14 10" stroke="#38bdf8" stroke-width="1.5"/><path d="M7 17L10 14" stroke="#38bdf8" stroke-width="1.5"/><path d="M17 17L14 14" stroke="#38bdf8" stroke-width="1.5"/></svg>` | 知识图谱/关联 |
+| **列表** | `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="4" rx="1" stroke="#38bdf8" stroke-width="1.5"/><rect x="3" y="10" width="18" height="4" rx="1" stroke="#38bdf8" stroke-width="1.5"/><rect x="3" y="16" width="18" height="4" rx="1" stroke="#38bdf8" stroke-width="1.5"/></svg>` | Feed流/列表 |
+| **搜索** | `<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="#64748b" stroke-width="1.5"/><path d="M21 21L16.65 16.65" stroke="#64748b" stroke-width="1.5" stroke-linecap="round"/></svg>` | 搜索框 |
+| **加号** | `<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>` | 新建按钮 |
+| **灯泡** | `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 18H15M10 22H14M12 2C8.13 2 5 5.13 5 9C5 11.38 6.19 13.47 8 14.74V17H16V14.74C17.81 13.47 19 11.38 19 9C19 5.13 15.87 2 12 2Z" stroke="#fbbf24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>` | 顿悟时刻 |
+| **关闭** | `<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>` | 关闭按钮 |
+| **编辑** | `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M11 4H4C3.44772 4 3 4.44772 3 5V20C3 20.5523 3.44772 21 4 21H19C19.5523 21 20 20.5523 20 20V13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M18.5 2.50001C18.8978 2.10219 18.8978 1.45782 18.5 1.06001L16.9393 -0.500686C16.5415 -0.898505 15.8971 -0.898505 15.4993 -0.500686L7 7.99933V11H10L18.5 2.50001Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>` | 编辑按钮 |
+| **删除** | `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 6H5H21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M8 6V4C8 3.44772 8.44772 3 9 3H15C15.5523 3 16 3.44772 16 4V6M19 6V20C19 20.5523 18.5523 21 18 21H6C5.44772 21 5 20.5523 5 20V6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>` | 删除按钮 |
+| **沙漏** | `<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 3H19M5 21H19M6 3V8L12 12L6 16V21M18 3V8L12 12L18 16V21" stroke="#64748b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>` | 加载中 |
+
+### 10.3 使用示例
+
+```tsx
+// 页面标题
+<div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M4 19.5V4.5C4 3.67157 4.67157 3 5.5 3H18.5C19.3284 3 20 3.67157 20 4.5V19.5C20 20.3284 19.3284 21 18.5 21H5.5C4.67157 21 4 20.3284 4 19.5Z" 
+          stroke="#38bdf8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M8 7H16" stroke="#38bdf8" strokeWidth="1.5" strokeLinecap="round"/>
+    <path d="M8 11H14" stroke="#38bdf8" strokeWidth="1.5" strokeLinecap="round"/>
+    <path d="M8 15H12" stroke="#38bdf8" strokeWidth="1.5" strokeLinecap="round"/>
+  </svg>
+  <span style={{ fontSize: '17px', fontWeight: 600, color: '#F8FAFC' }}>学习日志</span>
+</div>
+
+// 按钮图标
+<button>
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+    <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+  </svg>
+  新建
+</button>
+```
+
+### 10.4 禁止事项
+
+❌ **禁止使用 emoji 作为图标**（如 📚 🕸️ 📰 💡 ⏳ 等）  
+❌ **禁止使用图标字体**（如 Font Awesome、Iconfont）  
+❌ **禁止使用 PNG 图标**（除非是特殊品牌 logo）  
+✅ **必须使用内联 SVG**（便于主题切换、颜色控制、尺寸调整）
+
+---
+
 ## 十、组件体系与目录结构
 
 ```

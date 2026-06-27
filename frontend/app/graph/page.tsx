@@ -114,7 +114,9 @@ export default function GraphPage() {
       <main style={{ flex: 1, position: 'relative' }}>
         {!graphData ? (
           <div style={{ textAlign: 'center', padding: '80px', color: '#475569' }}>
-            <div style={{ fontSize: '24px', marginBottom: '12px' }}>⏳</div>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style={{ margin: '0 auto 12px' }}>
+              <path d="M5 3H19M5 21H19M6 3V8L12 12L6 16V21M18 3V8L12 12L18 16V21" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
             正在加载图谱数据...
           </div>
         ) : (
