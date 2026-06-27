@@ -150,6 +150,22 @@ export function IconWarning({ size = 16, color = '#ef4444' }: IconProps) {
 
 // ==================== 加载图标 ====================
 
+export function IconRefresh({ size = 16, color = '#64748b' }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M21 3V8H16M20 8C18.93 5.81 16.69 4.5 14.21 4.18C11.73 3.86 9.21 4.65 7.38 6.22C5.55 7.79 4.5 10 4.5 12.5C4.5 15 5.55 17.21 7.38 18.78C9.21 20.35 11.73 21.14 14.21 20.82C16.69 20.5 18.93 19.19 20 17" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+export function IconChevronDown({ size = 16, color = '#64748b' }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M6 9L12 15L18 9" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
 export function IconLoader({ size = 20, color = '#64748b', style }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={{ animation: 'spin 1s linear infinite', ...style }}>
@@ -175,6 +191,8 @@ export const ICONS = {
   tag: IconTag,
   warning: IconWarning,
   loader: IconLoader,
+  refresh: IconRefresh,
+  chevronDown: IconChevronDown,
 } as const;
 
 export type IconName = keyof typeof ICONS;
