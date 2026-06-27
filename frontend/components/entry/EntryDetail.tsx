@@ -1,8 +1,10 @@
 'use client';
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import Tag from '@/components/ui/Tag';
 import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';
-import type { Entry } from '@/types';
+import EntryForm from '@/components/entry/EntryForm';
+import { api } from '@/lib/api';
+import type { Entry, LearningEntryCreate } from '@/types';
 
 const researchTypeMap: Record<string, { label: string; color: string }> = {
   'deep-research': { label: '深度研究', color: '#fbbf24' },
@@ -10,7 +12,9 @@ const researchTypeMap: Record<string, { label: string; color: string }> = {
   'domain-mapping': { label: '领域映射', color: '#a78bfa' }
 };
 
-export default function EntryDetail({ entry, onClose }: { entry: Entry | null; onClose: () => void }) {
+export default function EntryDetail({ entry, onClose, onRefresh }: { entry: Entry | null; onClose: () => void; onRefresh?: () => void }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const markdownContent = useMemo(() => {
     if (!entry) return '';
     let md = `### 💡 核心洞察\n\n${entry.insight}\n\n`;
@@ -29,6 +33,33 @@ export default function EntryDetail({ entry, onClose }: { entry: Entry | null; o
   const dateTime = new Date(entry.timestamp);
   const dateStr = `${dateTime.getFullYear()}/${dateTime.getMonth()+1}/${dateTime.getDate()}`;
   const timeStr = `${String(dateTime.getHours()).padStart(2,'0')}:${String(dateTime.getMinutes()).padStart(2,'0')}:${String(dateTime.getSeconds()).padStart(2,'0')}`;
+
+  const handleDelete = async () => {
+    if (!entry) return;
+    try {
+      await api.entries.delete(entry.id);
+      onRefresh?.();
+      onClose();
+    } catch (err) {
+      console.error('Delete failed:', err);
+    }
+  };
+
+  const handleUpdate = async (data: LearningEntryCreate) => {
+    if (!entry) return;
+    try {
+      await api.entries.update(entry.id, data);
+      setIsEditing(false);
+      onRefresh?.();
+      onClose();
+    } catch (err) {
+      console.error('Update failed:', err);
+    }
+  };
+
+  if (isEditing && entry) {
+    return <EntryForm entry={entry} onSave={handleUpdate} onCancel={() => setIsEditing(false)} />;
+  }
 
   return (
     <div
@@ -83,28 +114,64 @@ export default function EntryDetail({ entry, onClose }: { entry: Entry | null; o
               {dateStr} {timeStr}
             </div>
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: '#334155',
-              border: 'none',
-              color: '#94A3B8',
-              fontSize: '18px',
-              cursor: 'pointer',
-              width: '36px',
-              height: '36px',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#475569'; e.currentTarget.style.color = '#F1F5F9'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = '#334155'; e.currentTarget.style.color = '#94A3B8'; }}
-          >
-            ×
-          </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => setIsEditing(true)}
+                style={{
+                  background: '#334155',
+                  border: 'none',
+                  color: '#94A3B8',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#475569'; e.currentTarget.style.color = '#F1F5F9'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#334155'; e.currentTarget.style.color = '#94A3B8'; }}
+              >
+                编辑
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                style={{
+                  background: '#7f1d1d',
+                  border: 'none',
+                  color: '#fca5a5',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#991b1b'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#7f1d1d'; }}
+              >
+                删除
+              </button>
+              <button
+                onClick={onClose}
+                style={{
+                  background: '#334155',
+                  border: 'none',
+                  color: '#94A3B8',
+                  fontSize: '18px',
+                  cursor: 'pointer',
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#475569'; e.currentTarget.style.color = '#F1F5F9'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#334155'; e.currentTarget.style.color = '#94A3B8'; }}
+              >
+                ×
+              </button>
+            </div>
         </div>
 
         {/* 内容区 */}
@@ -123,6 +190,65 @@ export default function EntryDetail({ entry, onClose }: { entry: Entry | null; o
             </div>
           )}
         </div>
+
+        {/* 删除确认对话框 */}
+        {showDeleteConfirm && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(15, 23, 42, 0.95)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1100
+            }}
+            onClick={() => setShowDeleteConfirm(false)}
+          >
+            <div
+              style={{
+                background: '#1E293B',
+                border: '1px solid #334155',
+                borderRadius: '12px',
+                padding: '24px',
+                maxWidth: '400px'
+              }}
+              onClick={e => e.stopPropagation()}
+            >
+              <h3 style={{ margin: '0 0 12px 0', color: '#F8FAFC', fontSize: '16px' }}>确认删除</h3>
+              <p style={{ margin: '0 0 20px 0', color: '#94A3B8', fontSize: '14px' }}>此操作不可撤销，确定要删除这条记录吗？</p>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    border: '1px solid #334155',
+                    background: 'transparent',
+                    color: '#94A3B8',
+                    cursor: 'pointer'
+                  }}
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleDelete}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: '#dc2626',
+                    color: '#fff',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  确认删除
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { api } from '@/lib/api';
+import SearchBar from '@/components/ui/SearchBar';
 import FilterBar from '@/components/layout/FilterBar';
 import TimelineView from '@/components/timeline/TimelineView';
 import EntryDetail from '@/components/entry/EntryDetail';
-import type { Entry } from '@/types';
+import EntryForm from '@/components/entry/EntryForm';
+import type { Entry, LearningEntryCreate } from '@/types';
 
 export default function Home() {
   const [entries, setEntries] = useState<Entry[]>([]);
@@ -13,6 +15,8 @@ export default function Home() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [selected, setSelected] = useState<Entry | null>(null);
   const [activeFilter, setActiveFilter] = useState<{ type: string; id: string } | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
   const [offset, setOffset] = useState(0);
   const limit = 30;
   const offsetRef = useRef(0);
@@ -30,6 +34,16 @@ export default function Home() {
   }, []);
 
   const loadEntriesRef = useRef<(reset?: boolean) => void>();
+
+  const handleCreate = async (data: LearningEntryCreate) => {
+    try {
+      await api.entries.create(data);
+      setIsCreating(false);
+      loadEntries(true);
+    } catch (err) {
+      console.error('Create failed:', err);
+    }
+  };
 
   const loadEntries = (reset = false) => {
     if (isLoadingRef.current) return;
@@ -73,16 +87,25 @@ export default function Home() {
     return () => el.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // 按日期分组 + 过滤
+  // 按日期分组 + 过滤 + 搜索
   const filteredEntries = useMemo(() => {
     return entries.filter(e => {
+      // 搜索过滤
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        const inTopic = e.topic.toLowerCase().includes(q);
+        const inInsight = e.insight.toLowerCase().includes(q);
+        const inTags = e.custom_tags?.some(t => t.toLowerCase().includes(q));
+        if (!inTopic && !inInsight && !inTags) return false;
+      }
+      // 类型过滤
       if (!activeFilter) return true;
       if (activeFilter.type === 'research') return e.research_type === activeFilter.id;
       if (activeFilter.type === 'project') return e.project_tag_id === activeFilter.id;
       if (activeFilter.type === 'tag') return e.topic_tag_id === activeFilter.id || e.related_tag_ids?.includes(activeFilter.id);
       return true;
     });
-  }, [entries, activeFilter]);
+  }, [entries, activeFilter, searchQuery]);
 
   return (
     <div style={{ height: '100vh', background: '#0F172A', color: '#F8FAFC', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -92,7 +115,28 @@ export default function Home() {
           <span style={{ fontSize: '17px', fontWeight: 600, letterSpacing: '-0.5px' }}>📚 学习日志</span>
           <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '10px', background: '#1E293B', color: '#64748b' }}>时间线</span>
         </div>
-        <FilterBar activeFilter={activeFilter} onFilterChange={setActiveFilter} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <SearchBar onSearch={setSearchQuery} />
+          <FilterBar activeFilter={activeFilter} onFilterChange={setActiveFilter} />
+          <button
+            onClick={() => setIsCreating(true)}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: 'none',
+              background: '#38bdf8',
+              color: '#0F172A',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#7dd3fc'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#38bdf8'; }}
+          >
+            + 新建
+          </button>
+        </div>
       </header>
 
       {/* 时间线内容 */}
@@ -133,7 +177,8 @@ export default function Home() {
         )}
       </main>
 
-      <EntryDetail entry={selected} onClose={() => setSelected(null)} />
+      <EntryDetail entry={selected} onClose={() => setSelected(null)} onRefresh={() => loadEntries(true)} />
+      {isCreating && <EntryForm onSave={handleCreate} onCancel={() => setIsCreating(false)} />}
     </div>
   );
 }
