@@ -123,15 +123,20 @@ P6.8 Feed 页面统一 FilterBar ── 可独立
 P7.1 键盘可访问性 ───────── 无依赖（单独推进）
 P7.2 空状态 + 加载状态补齐 ── 可独立
 P7.3 请求增强 ───────────── 可独立（取消/超时）
+───────────────────────────────────────
+       │
+       ▼
+P8.1 Feed 卡片可点击 ─────── 可独立
+P8.2 表单提交 loading 态 ──── 可独立
+P8.3 未保存编辑确认 ──────── 依赖 P8.2（form dirty 状态复用）
+P8.4 Ctrl+Enter 快捷提交 ──── 可独立
 ```
 
 ### 执行顺序
 
 ```
-P6.1 → P6.2 → P6.3 → P6.4 → P6.5 → P6.6 → P6.7 → P6.8 → P7.1 → P7.2 → P7.3 ✅
+P6.1 → P6.2 → P6.3 → P6.4 → P6.5 → P6.6 → P6.7 → P6.8 → P7.1 → P7.2 → P7.3 → P8.1 → P8.2 → P8.3 → P8.4 ✅
 ```
-
----
 
 ## 3. 详细任务规格
 
@@ -549,7 +554,68 @@ interface PageHeaderProps {
 
 ---
 
-## 4. 约束与规则
+### 阶段 P8：UX 增强
+
+#### P8.1 Feed 卡片可点击
+
+**问题**: Feed 页卡片有 `cursor:pointer` 但无 `onClick`，用户无法点开查看详情。
+
+**操作**:
+1. `feed/page.tsx` — 添加 `selectedEntry` state，import `EntryDetail`
+2. 卡片 `div` 添加 `onClick={() => setSelectedEntry(entry)}`
+3. 页面底部渲染 `<EntryDetail entry={selectedEntry} onClose={() => setSelectedEntry(null)} />`
+
+**验证**:
+- `npm run build` 通过
+- Feed 页点击卡片弹出详情弹窗，关闭正常
+
+**Git**: `feat(frontend): P8.1 Feed 卡片可点击 — 点击打开 EntryDetail`
+
+#### P8.2 表单提交 loading 态
+
+**问题**: EntryForm 提交按钮无 loading 状态，双击会重复提交。
+
+**操作**:
+1. `EntryForm.tsx` — 添加 `submitting` state
+2. `handleSubmit` 设置为 `async`，提交期间 `setSubmitting(true)`，完成后 `finally` 恢复
+3. 提交按钮：`disabled={submitting}`，文字显示 `创建中...` / `保存中...`
+
+**验证**:
+- `npm run build` 通过
+- 提交时按钮变灰且文字变化，无法再次点击
+- 提交完成后恢复正常
+
+**Git**: `feat(frontend): P8.2 表单提交 loading 态 — 防止双击重复提交`
+
+#### P8.3 未保存编辑确认
+
+**问题**: EntryForm 中编辑后按 Escape 或点取消直接关闭，无未保存提示。
+
+**操作**:
+1. `EntryForm.tsx` — 添加 `dirty` state（初始 `false`，任意字段变化时 `true`）
+2. 取消按钮 / Esc 关闭前检查 `dirty`，有更改时弹窗确认
+3. 使用 `confirm()` 或自建轻量确认
+
+**验证**:
+- `npm run build` 通过
+- 编辑字段后点取消 → 弹出确认提示
+- 无更改时直接关闭
+
+**Git**: `feat(frontend): P8.3 未保存编辑确认 — dirty 状态 + 关闭确认`
+
+#### P8.4 Ctrl+Enter 快捷提交
+
+**问题**: 长表单必须鼠标点击提交按钮，键盘用户效率低。
+
+**操作**:
+1. `EntryForm.tsx` — 在 `textarea`（关键洞察）的 `onKeyDown` 中监听 `Ctrl+Enter` / `Meta+Enter`
+2. 触发时调用 `handleSubmit`
+
+**验证**:
+- `npm run build` 通过
+- 在文本框中按 Ctrl+Enter 触发提交
+
+**Git**: `feat(frontend): P8.4 快捷提交 — Ctrl+Enter 提交表单`
 
 ### 4.1 必须遵守
 
@@ -598,6 +664,10 @@ refactor(frontend): P6.8 Feed 页面统一 FilterBar
 feat(frontend): P7.1 键盘可访问性 — tabIndex/aria/role
 feat(frontend): P7.2 空状态 + 加载状态补齐
 feat(frontend): P7.3 请求增强 — AbortController + timeout
+feat(frontend): P8.1 Feed 卡片可点击 — 点击打开 EntryDetail
+feat(frontend): P8.2 表单提交 loading 态
+feat(frontend): P8.3 未保存编辑确认
+feat(frontend): P8.4 快捷提交 — Ctrl+Enter
 ```
 
 ---
