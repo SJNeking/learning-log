@@ -15,6 +15,12 @@ from datetime import datetime, date, timedelta
 from collections import Counter
 from contextlib import contextmanager
 from db import DB_PATH, init_db
+from clustering import (
+    louvain_community_detection,
+    generate_cluster_labels,
+    analyze_clusters,
+    generate_cluster_tag_cloud,
+)
 
 try:
     import jieba
@@ -611,6 +617,12 @@ def _compute_embeddings(texts: list[str]):
     vec = TfidfVectorizer(max_features=500, stop_words=list(ENGLISH_STOP | STOP_WORDS))
     return vec.fit_transform(texts).toarray()
 
+def _cosine_sim_matrix(emb):
+    """Compute cosine similarity matrix from embeddings."""
+    import numpy as np
+    from sklearn.metrics.pairwise import cosine_similarity
+    return cosine_similarity(emb)
+
 def _infer_research_type(entry: dict) -> str:
     """Infer AI behavior type from entry content signals.
 
@@ -750,20 +762,12 @@ def get_attention_graph(
         for j in range(n):
             attn[i][j] = w_content * content_sim[i][j] + w_tags * tag_sim[i][j] + w_temporal * temporal_sim[i][j]
     
-    # ── Cluster by research_type (fixed 3 types) ──
-    RESEARCH_CLUSTER = {
-        'deep-research': 0,
-        'topic-exploration': 1,
-        'domain-mapping': 2,
-    }
-    CLUSTER_NAMES = {
-        0: '深度研究',
-        1: '主题探索',
-        2: '领域映射',
-    }
-    clusters = [RESEARCH_CLUSTER.get(e.get('research_type'), 3) for e in entries]
-    n_clusters = max(4, max(clusters) + 1) if clusters else 4
-    cluster_names = {**CLUSTER_NAMES, 3: '未分类'}
+    # ── Cluster by Louvain community detection on attention matrix ──
+    clusters = louvain_community_detection(attn, n, resolution=1.0)
+    n_clusters = max(clusters) + 1 if clusters else 1
+    
+    # Generate semantic labels for each cluster
+    cluster_labels = generate_cluster_labels(entries, clusters, n_clusters)
     
     # ── Build edges: top_k per entry ──
     edge_set = set()
@@ -796,6 +800,7 @@ def get_attention_graph(
     
     nodes = []
     for i, e in enumerate(entries):
+        cluster_id = int(clusters[i])
         nodes.append({
             "id": e['id'],
             "topic": e['topic'],
@@ -803,8 +808,8 @@ def get_attention_graph(
             "energy": e['energy_level'],
             "aha": bool(e['aha_moment']),
             "research_type": e.get('research_type') or 'unclassified',
-            "cluster": int(clusters[i]),
-            "cluster_name": cluster_names.get(int(clusters[i]), ''),
+            "cluster": cluster_id,
+            "cluster_name": cluster_labels.get(cluster_id, f'聚类 {cluster_id + 1}'),
             "timestamp": e['timestamp'],
             "degree": degree.get(e['id'], 0),
             "tag_count": len(e.get('custom_tags') or []),
@@ -812,10 +817,15 @@ def get_attention_graph(
     
     edges.sort(key=lambda x: -x['weight'])
     
+    # Build clusters list for response
+    cluster_list = []
+    for i in range(n_clusters):
+        cluster_list.append(cluster_labels.get(i, f'聚类 {i + 1}'))
+    
     result = {
         "nodes": nodes,
         "edges": edges,
-        "clusters": [cluster_names.get(i, f"其他") for i in range(n_clusters) if i in cluster_names],
+        "clusters": cluster_list,
         "weights": {"content": w_content, "tags": w_tags, "temporal": w_temporal},
         "entry_count": n,
     }
