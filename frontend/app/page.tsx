@@ -9,7 +9,7 @@ import StatsPanel from '@/components/layout/StatsPanel';
 import TimelineView from '@/components/timeline/TimelineView';
 import EntryDetail from '@/components/entry/EntryDetail';
 import EntryForm from '@/components/entry/EntryForm';
-import { IconBook, IconHourglass, IconEmpty } from '@/components/ui/Icons';
+import { IconGlean, IconHourglass, IconEmpty } from '@/components/ui/Icons';
 import { useWeekNavigation } from '@/hooks/useWeekNavigation';
 import { useEntryFilter } from '@/hooks/useEntryFilter';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
@@ -71,7 +71,7 @@ export default function Home() {
       className="page-shell"
       style={{ padding: '0 16px' }}
     >
-      <PageHeader icon={<IconBook size={24} />} title="学习日志" badge="时间线">
+      <PageHeader icon={<IconGlean size={24} />} title="拾光" badge="时间线">
         <SearchBar onSearch={setSearchQuery} />
         <Navigation />
         <button

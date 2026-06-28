@@ -489,28 +489,7 @@ body {
   to { transform: translateY(0); }
 }
 
-/* Tags page: main content area */
-.tags-content {
-  padding: 24px 32px;
-}
 
-@media (max-width: 768px) {
-  .tags-content {
-    padding: 16px;
-  }
-}
-
-/* Tags: research mode tabs wrap on mobile */
-@media (max-width: 768px) {
-  .tags-content .research-tabs {
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-  .tags-content .research-tabs button {
-    font-size: 12px;
-    padding: 6px 14px;
-  }
-}
 
 /* Graph page: neighbors panel responsive */
 .graph-neighbors-panel {

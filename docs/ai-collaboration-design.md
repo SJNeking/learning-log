@@ -326,15 +326,14 @@ Claude Code 通过 `~/.claude/CLAUDE.md`（全局）和项目 `CLAUDE.md` 自动
 
 ### 5.2 项目 Skills（5 个）
 
-Skill 文件位于 `.claude/skills/`，由 Claude Code 自动加载：
+Skill 文件位于 `~/.config/opencode/skills/`，由 Claude Code 自动加载：
 
-| Skill | 文件 | 触发方式 |
+| Skill | 目录 | 触发方式 |
 |-------|------|---------|
-| `/记录` | `记录.md` | 深度知识沉淀（协议对齐格式 → 入库） |
-| `/状态` | `状态.md` | 系统状态速查 + 最近 Feed |
-| `/灵感` | `灵感.md` | 快速顿悟捕获 (energy=5, aha=true) |
-| `/服务` | `服务.md` | 后台服务管理（launchd install/status/restart/logs） |
-| `/命令` | `命令.md` | 列出所有可用命令 |
+| `learnlog-record` | `/记录` | 深度知识沉淀（协议对齐格式 → 入库） |
+| `learnlog-status` | `/状态` | 系统状态速查 + 最近 Feed |
+| `learnlog-aha` | `/灵感` | 快速顿悟捕获 (energy=5, aha=true) |
+| `learnlog-commands` | `/命令` | 列出所有可用命令 |
 
 ### 5.3 全局 CLI
 
@@ -531,8 +530,8 @@ learnlog record "主题" "insight" --diagram "$DIAGRAM"
    - 提供 `capture_learning`、`batch_capture`、`learning_log_status` 三个工具
 
 4. **Skill 文件**（已内置，无需手动配置）:
-   - `.claude/skills/` 下 5 个 Skill（记录/状态/灵感/服务/命令）
-   - Claude Code 自动加载，用户输入 `/记录`、`/状态` 等即可触发
+- `~/.config/opencode/skills/` 下 4 个 Skill（记录/状态/灵感/命令）
+- Claude Code 自动加载，用户输入 `/记录`、`/状态` 等即可触发
 
 5. **测试协作环**:
    - 在 Claude Code 中说 `/记录`

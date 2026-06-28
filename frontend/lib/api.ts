@@ -212,12 +212,13 @@ export const api = {
     return cachedFetch<GraphData>(url, cacheKey(url), 10000, signal);
   },
 
-  attention: (params?: { w_content?: number; w_tags?: number; w_temporal?: number; top_k?: number }, signal?: AbortSignal) => {
+  attention: (params?: { w_content?: number; w_tags?: number; w_temporal?: number; top_k?: number; research_type?: string | null }, signal?: AbortSignal) => {
     const query = new URLSearchParams();
     if (params?.w_content != null) query.set('w_content', String(params.w_content));
     if (params?.w_tags != null) query.set('w_tags', String(params.w_tags));
     if (params?.w_temporal != null) query.set('w_temporal', String(params.w_temporal));
     if (params?.top_k != null) query.set('top_k', String(params.top_k));
+    if (params?.research_type != null && params.research_type !== '') query.set('research_type', params.research_type);
     const qs = query.toString();
     const url = `${BASE_URL}/api/graph/attention${qs ? '?' + qs : ''}`;
     return cachedFetch<AttentionGraph>(url, cacheKey(url, params as Record<string, unknown>), 60000, signal);

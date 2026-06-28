@@ -1,0 +1,50 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "filesystem": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/Users/mingxilv/.learning-log",
+        "/Users/mingxilv/learn",
+        "/Users/mingxilv/Library/Mobile Documents/com~apple~CloudDocs/Obsidian/vibe-coding"
+      ],
+      "enabled": true
+    },
+    "github": {
+      "type": "local",
+      "command": [
+        "bash",
+        "/Users/mingxilv/.local/bin/gh-mcp-wrapper.sh"
+      ],
+      "enabled": true
+    },
+    "learning-log": {
+      "type": "local",
+      "command": [
+        "/Users/mingxilv/PycharmProjects/learning-log/venv/bin/python3",
+        "/Users/mingxilv/PycharmProjects/learning-log/backend/mcp_server.py"
+      ],
+      "enabled": true,
+      "environment": {
+        "LEARNLOG_PROJECT_DIR": "/Users/mingxilv/PycharmProjects/learning-log",
+        "BACKEND_URL": "http://localhost:8002",
+        "AI_API_URL": "http://localhost:11434/api/generate",
+        "AI_MODEL": "qwen2.5"
+      }
+    },
+    "playwright": {
+      "type": "local",
+      "command": [
+        "playwright-mcp",
+        "--headless"
+      ],
+      "enabled": true,
+      "environment": {
+        "PLAYWRIGHT_BROWSERS_PATH": "~/.cache/ms-playwright"
+      }
+    }
+  }
+}

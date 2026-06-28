@@ -129,7 +129,7 @@ Content-Type: application/json
 
 ```
 backend/        FastAPI 服务 (main.py, db.py, mcp_server.py)
-frontend/       Next.js 14 时间线 UI (pages: / /feed /tags /graph)
+frontend/       Next.js 14 时间线 UI (pages: / /feed /graph)
 scripts/tools/  可复用工具 (auto_record, context_manager...)
 scripts/seeds/  种子数据脚本
 deploy/         部署脚本
@@ -155,7 +155,7 @@ docs/           设计文档
 
 ## 侧边栏交互规则（关键）
 
-所有 4 页 (`/` `/feed` `/tags` `/graph`) 共享 `EntryDetail` 组件：
+所有 3 页 (`/` `/feed` `/graph`) 共享 `EntryDetail` 组件：
 
 **关闭方式**（仅有）:
 - × 按钮 / Escape 键
@@ -169,7 +169,7 @@ docs/           设计文档
 - ❌ 点击关联索引条目
 
 **布局差异**:
-- `/` `/tags` `/graph`：`.content-area` flex 布局，sidebar 与 main 并列
+- `/` `/graph`：`.content-area` flex 布局，sidebar 与 main 并列
 - `/feed`：`position: fixed` 覆盖模式 + backdrop
 
 **相关文件**: `frontend/components/entry/EntryDetail.tsx:104` (stopPropagation), `frontend/app/page.tsx:63` (handleSelect toggle), `frontend/styles/index.css:413-451` (sidebar-detail CSS, 含移动端响应式)

@@ -21,10 +21,11 @@ const DEFAULT_COLOR = '#38bdf8';
 export function IconBook({ size = 24, color = DEFAULT_COLOR }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <path d="M4 19.5V4.5C4 3.67157 4.67157 3 5.5 3H18.5C19.3284 3 20 3.67157 20 4.5V19.5C20 20.3284 19.3284 21 18.5 21H5.5C4.67157 21 4 20.3284 4 19.5Z" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M8 7H16" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
-      <path d="M8 11H14" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
-      <path d="M8 15H12" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
+      <path d="M3 20L21 20" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
+      <circle cx="6" cy="15" r="1.5" stroke={color} strokeWidth="1.2"/>
+      <circle cx="12" cy="11" r="1.5" stroke={color} strokeWidth="1.2"/>
+      <circle cx="18" cy="7" r="1.5" stroke={color} strokeWidth="1.2"/>
+      <path d="M6 15L12 11L18 7" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   );
 }
@@ -32,15 +33,10 @@ export function IconBook({ size = 24, color = DEFAULT_COLOR }: IconProps) {
 export function IconNetwork({ size = 24, color = DEFAULT_COLOR }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="12" r="3" stroke={color} strokeWidth="1.5"/>
-      <circle cx="5" cy="6" r="2" stroke={color} strokeWidth="1.5"/>
-      <circle cx="19" cy="6" r="2" stroke={color} strokeWidth="1.5"/>
-      <circle cx="5" cy="18" r="2" stroke={color} strokeWidth="1.5"/>
-      <circle cx="19" cy="18" r="2" stroke={color} strokeWidth="1.5"/>
-      <path d="M7 7L10 10" stroke={color} strokeWidth="1.5"/>
-      <path d="M17 7L14 10" stroke={color} strokeWidth="1.5"/>
-      <path d="M7 17L10 14" stroke={color} strokeWidth="1.5"/>
-      <path d="M17 17L14 14" stroke={color} strokeWidth="1.5"/>
+      <circle cx="12" cy="5" r="2.5" stroke={color} strokeWidth="1.5"/>
+      <circle cx="5" cy="19" r="2.5" stroke={color} strokeWidth="1.5"/>
+      <circle cx="19" cy="19" r="2.5" stroke={color} strokeWidth="1.5"/>
+      <path d="M12 7.5L5 16.5M12 7.5L19 16.5M7.5 19L16.5 19" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   );
 }
@@ -48,9 +44,10 @@ export function IconNetwork({ size = 24, color = DEFAULT_COLOR }: IconProps) {
 export function IconList({ size = 24, color = DEFAULT_COLOR }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <rect x="3" y="4" width="18" height="4" rx="1" stroke={color} strokeWidth="1.5"/>
-      <rect x="3" y="10" width="18" height="4" rx="1" stroke={color} strokeWidth="1.5"/>
-      <rect x="3" y="16" width="18" height="4" rx="1" stroke={color} strokeWidth="1.5"/>
+      <circle cx="5" cy="12" r="1.5" stroke={color} strokeWidth="1.2"/>
+      <circle cx="12" cy="12" r="1.5" stroke={color} strokeWidth="1.2"/>
+      <circle cx="19" cy="12" r="1.5" stroke={color} strokeWidth="1.2"/>
+      <path d="M5 12L12 12M12 12L19 12" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   );
 }
@@ -174,18 +171,27 @@ export function IconLoader({ size = 20, color = '#64748b', style }: IconProps) {
   );
 }
 
+// ==================== 项目 Logo ====================
+
+export function IconGlean({ size = 24, color = DEFAULT_COLOR }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M12 2L19 8L12 22L5 8L12 2Z" stroke={color} strokeWidth="1.5" strokeLinejoin="round"/>
+      <circle cx="8" cy="12" r="1.5" stroke={color} strokeWidth="1.2"/>
+      <circle cx="16" cy="12" r="1.5" stroke={color} strokeWidth="1.2"/>
+      <path d="M8 12L12 8L16 12" stroke={color} strokeWidth="1" opacity="0.35"/>
+    </svg>
+  );
+}
+
 // ==================== 聚类图标 ====================
 
 export function IconCluster({ size = 24, color = DEFAULT_COLOR }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <rect x="3" y="4" width="11" height="10" rx="5.5" stroke={color} strokeWidth="1.5" strokeDasharray="3 2" strokeLinecap="round" strokeLinejoin="round"/>
-      <circle cx="6.5" cy="7.5" r="1.5" stroke={color} strokeWidth="1.5"/>
-      <circle cx="10.5" cy="7.5" r="1.5" stroke={color} strokeWidth="1.5"/>
-      <circle cx="8.5" cy="11" r="1.5" stroke={color} strokeWidth="1.5"/>
-      <rect x="13" y="12" width="9" height="9" rx="4.5" stroke={color} strokeWidth="1.5" strokeDasharray="3 2" strokeLinecap="round" strokeLinejoin="round"/>
-      <circle cx="15.5" cy="15" r="1.5" stroke={color} strokeWidth="1.5"/>
-      <circle cx="19.5" cy="16.5" r="1.5" stroke={color} strokeWidth="1.5"/>
+      <circle cx="9" cy="12" r="5" stroke={color} strokeWidth="1.5"/>
+      <circle cx="15" cy="12" r="5" stroke={color} strokeWidth="1.5"/>
+      <circle cx="12" cy="8" r="3.5" stroke={color} strokeWidth="1.3"/>
     </svg>
   );
 }

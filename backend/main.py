@@ -566,13 +566,20 @@ def get_graph_data():
 
 # --- Attention Graph (自生长图谱) ---
 
-def _entries_for_attention(conn) -> list[dict]:
+def _entries_for_attention(conn, research_type: str | None = None) -> list[dict]:
     cursor = conn.cursor()
-    cursor.execute("""
-        SELECT id, topic, insight, summary, energy_level, aha_moment, 
-               related_tag_ids, custom_tags, timestamp
-        FROM learning_entries ORDER BY id
-    """)
+    if research_type:
+        cursor.execute("""
+            SELECT id, topic, insight, summary, energy_level, aha_moment, 
+                   research_type, related_tag_ids, custom_tags, timestamp
+            FROM learning_entries WHERE research_type = ? ORDER BY id
+        """, (research_type,))
+    else:
+        cursor.execute("""
+            SELECT id, topic, insight, summary, energy_level, aha_moment, 
+                   research_type, related_tag_ids, custom_tags, timestamp
+            FROM learning_entries ORDER BY id
+        """)
     entries = []
     for row in cursor.fetchall():
         e = row_to_dict(row)
@@ -604,6 +611,70 @@ def _compute_embeddings(texts: list[str]):
     vec = TfidfVectorizer(max_features=500, stop_words=list(ENGLISH_STOP | STOP_WORDS))
     return vec.fit_transform(texts).toarray()
 
+def _infer_research_type(entry: dict) -> str:
+    """Infer AI behavior type from entry content signals.
+
+    Returns 'domain-mapping', 'topic-exploration', or 'deep-research'.
+    Falls back to entry's existing research_type if no signal matches.
+    """
+    if entry.get('diagram') or entry.get('code_snippet'):
+        return 'domain-mapping'
+    if entry.get('analogy') or entry.get('transfer_pattern'):
+        return 'topic-exploration'
+    insight = entry.get('insight') or ''
+    if len(insight) > 500 and entry.get('confidence_rating') is not None:
+        return 'deep-research'
+    return entry.get('research_type', 'deep-research')
+
+@app.post("/api/entries/backfill-research-types")
+def backfill_research_types(dry_run: bool = False):
+    """Infer research_type from content signals for all existing entries.
+
+    - dry_run=True: return changes without persisting
+    - dry_run=False: persist changes
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM learning_entries ORDER BY id")
+    rows = cursor.fetchall()
+
+    changes = []
+    for row in rows:
+        e = row_to_dict(row)
+        e['research_type'] = e.get('research_type') or 'deep-research'
+        e['diagram'] = e.get('diagram')
+        e['code_snippet'] = e.get('code_snippet')
+        e['analogy'] = e.get('analogy')
+        e['transfer_pattern'] = e.get('transfer_pattern')
+        e['confidence_rating'] = e.get('confidence_rating')
+        e['insight'] = e.get('insight')
+
+        inferred = _infer_research_type(e)
+        original = e.get('research_type', 'deep-research')
+        if inferred != original:
+            changes.append({
+                "id": e['id'],
+                "topic": e['topic'][:60],
+                "from": original,
+                "to": inferred,
+            })
+            if not dry_run:
+                cursor.execute(
+                    "UPDATE learning_entries SET research_type = ? WHERE id = ?",
+                    (inferred, e['id'])
+                )
+
+    if not dry_run:
+        conn.commit()
+    conn.close()
+
+    return {
+        "dry_run": dry_run,
+        "changed": len(changes),
+        "total": len(rows),
+        "changes": changes,
+    }
+
 def _to_python(obj):
     """Recursively convert numpy types to native Python types."""
     import numpy as np
@@ -625,10 +696,11 @@ def get_attention_graph(
     w_tags: float = 0.25,
     w_temporal: float = 0.15,
     top_k: int = 5,
+    research_type: str | None = None,
 ):
     """3-head attention graph — nodes = entries, edges = weighted similarity"""
     with db_session() as conn:
-        entries = _entries_for_attention(conn)
+        entries = _entries_for_attention(conn, research_type)
     
     if len(entries) < 2:
         return {"nodes": [], "edges": [], "clusters": [], "weights": {"content": w_content, "tags": w_tags, "temporal": w_temporal}}
@@ -678,13 +750,20 @@ def get_attention_graph(
         for j in range(n):
             attn[i][j] = w_content * content_sim[i][j] + w_tags * tag_sim[i][j] + w_temporal * temporal_sim[i][j]
     
-    # ── Cluster (k-means on content embeddings) ──
-    from sklearn.cluster import KMeans
-    n_clusters = min(5, max(2, n // 6))
-    try:
-        clusters = KMeans(n_clusters=n_clusters, random_state=42, n_init='auto').fit_predict(emb)
-    except Exception:
-        clusters = [0] * n
+    # ── Cluster by research_type (fixed 3 types) ──
+    RESEARCH_CLUSTER = {
+        'deep-research': 0,
+        'topic-exploration': 1,
+        'domain-mapping': 2,
+    }
+    CLUSTER_NAMES = {
+        0: '深度研究',
+        1: '主题探索',
+        2: '领域映射',
+    }
+    clusters = [RESEARCH_CLUSTER.get(e.get('research_type'), 3) for e in entries]
+    n_clusters = max(4, max(clusters) + 1) if clusters else 4
+    cluster_names = {**CLUSTER_NAMES, 3: '未分类'}
     
     # ── Build edges: top_k per entry ──
     edge_set = set()
@@ -708,13 +787,6 @@ def get_attention_graph(
                         }
                     })
     
-    # ── Cluster names (nearest entry to centroid) ──
-    cluster_names = {}
-    for cid in range(n_clusters):
-        indices = [idx for idx, c in enumerate(clusters) if c == cid]
-        if indices:
-            cluster_names[cid] = entries[indices[0]]['topic']
-    
     # ── Build nodes ──
     degree = Counter()
     for e in edges:
@@ -730,6 +802,7 @@ def get_attention_graph(
             "summary": (e.get('summary') or '')[:100],
             "energy": e['energy_level'],
             "aha": bool(e['aha_moment']),
+            "research_type": e.get('research_type') or 'unclassified',
             "cluster": int(clusters[i]),
             "cluster_name": cluster_names.get(int(clusters[i]), ''),
             "timestamp": e['timestamp'],
@@ -742,7 +815,7 @@ def get_attention_graph(
     result = {
         "nodes": nodes,
         "edges": edges,
-        "clusters": [cluster_names.get(i, f"Cluster {i}") for i in range(n_clusters)],
+        "clusters": [cluster_names.get(i, f"其他") for i in range(n_clusters) if i in cluster_names],
         "weights": {"content": w_content, "tags": w_tags, "temporal": w_temporal},
         "entry_count": n,
     }

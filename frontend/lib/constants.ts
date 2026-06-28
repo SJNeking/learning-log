@@ -3,9 +3,9 @@
  */
 
 export const RESEARCH_TYPES = {
-  'deep-research':      { label: '深度研究', color: '#fbbf24' },
-  'topic-exploration':  { label: '主题探索', color: '#34d399' },
-  'domain-mapping':     { label: '领域映射', color: '#a78bfa' },
+  'deep-research':      { label: '深度研究', color: '#60a5fa' },
+  'topic-exploration':  { label: '主题探索', color: '#a78bfa' },
+  'domain-mapping':     { label: '领域映射', color: '#34d399' },
 } as const;
 
 // --- Energy Level Colors ---
@@ -34,9 +34,9 @@ export const TAG_CATEGORY_COLORS: Record<string, string> = {
 // --- Research Type Colors (lookup by type string) ---
 
 export const RESEARCH_TYPE_COLORS: Record<string, string> = {
-  'deep-research':      '#fbbf24',
-  'topic-exploration':  '#34d399',
-  'domain-mapping':     '#a78bfa',
+  'deep-research':      '#60a5fa',
+  'topic-exploration':  '#a78bfa',
+  'domain-mapping':     '#34d399',
 } as const;
 
 // --- Research Type Labels ---

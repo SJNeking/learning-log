@@ -116,6 +116,7 @@ export interface AttentionNode {
   summary: string;
   energy: number;
   aha: boolean;
+  research_type: string;
   cluster: number;
   cluster_name: string;
   timestamp: string;

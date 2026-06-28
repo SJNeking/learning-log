@@ -34,7 +34,7 @@ pydantic==2.5.0
 
 ```
 backend/
-├── main.py              # ★ FastAPI 主应用（约 400 行，17 个端点）
+├── main.py              # ★ FastAPI 主应用（约 420 行，23 个端点）
 ├── db.py                # ★ 数据库初始化（4 表 + 12 索引）
 ├── mcp_server.py        # ★ MCP 协议服务（AI 侧面通道）
 ├── auto_capture.py      # 对话文件自动扫描器
@@ -503,7 +503,7 @@ Query Params:
 
 ### 6.4 图谱数据
 
-#### `GET /api/graph` — 图谱节点 + 连线
+#### `GET /api/graph` — 标签层级图谱
 
 ```
 Response 200: {
@@ -521,7 +521,84 @@ Response 200: {
      source → source_tag_id, target → target_tag_id, label → link_type
 ```
 
-### 6.5 统计
+#### `GET /api/graph/attention` — 注意力关联图谱
+
+```
+Response 200: AttentionGraph
+  nodes: AttentionNode[]  (id, topic, research_type, energy_level, timestamp)
+  edges: AttentionEdge[]  (source, target, weight, reason)
+
+说明: 基于学习记录的内容相似度和标签重叠度构建关联网络。
+      weight 区间 [0,1]，≥0.15 才出边（过滤弱关联）。
+      前端 ECharts 力导向布局渲染，无文字叠加。
+```
+
+### 6.5 研究类型推断
+
+#### `POST /api/entries/backfill-research-types` — 批量推断 research_type
+
+```
+Query Params:  dry_run (可选, bool) — 仅预览不写入
+
+实现函数: _infer_research_type(diagram, code_snippet, analogy, transfer_pattern, insight, confidence_rating)
+
+推断规则:
+  - diagram 或 code_snippet 非空 → domain-mapping
+  - analogy 或 transfer_pattern 非空 → topic-exploration
+  - insight 长度 > 500 且 confidence_rating 非空 → deep-research
+  - 多条匹配 → 优先级: domain-mapping > topic-exploration > deep-research
+
+Response 200: { "updated": N, "dry_run": bool, "changes": [...] }
+```
+
+### 6.6 注意力关联
+
+#### `GET /api/entries/{entry_id}/neighbors` — 条目关联节点
+
+```
+Path Params:  entry_id (int)
+Query Params: limit (int, 默认 20)
+
+说明: 返回与指定条目关联最紧密的其他条目列表（按 attention weight 排序）。
+      关联权重基于标签重叠度 + 内容相似度计算。
+
+Response 200: [
+  {
+    "id": int,
+    "topic": str,
+    "research_type": str,
+    "energy_level": int,
+    "summary": str,
+    "attention_weight": float,
+    "shared_tags": [str, ...]
+  }
+]
+```
+
+### 6.7 条目 CRUD
+
+#### `PUT /api/entries/{entry_id}` — 更新条目（PATCH 语义）
+
+```
+Path Params:  entry_id (int)
+Request Body:  LearningEntryCreate (partial — 只传要改的字段)
+
+说明: 字段级部分更新，未传字段保持不变。
+      related_tag_ids / custom_tags 必须传完整新值（覆盖而非追加）。
+
+Response 200: { "message": "Entry updated", "id": entry_id }
+```
+
+#### `DELETE /api/entries/{entry_id}` — 删除条目
+
+```
+Path Params:  entry_id (int)
+
+响应: 200 { "message": "Entry deleted" }
+      404 { "detail": "Entry not found" }
+```
+
+### 6.8 统计
 
 #### `GET /api/stats` — 基础统计
 
@@ -533,7 +610,7 @@ Response 200: {
 }
 ```
 
-### 6.6 项目维度
+### 6.9 项目维度
 
 #### `GET /api/projects` — 项目列表
 
@@ -557,7 +634,7 @@ Query Params:  research_type (可选)
   否则 → 精确 = 匹配
 ```
 
-### 6.7 自然语言命令
+### 6.10 自然语言命令
 
 #### `POST /api/nl-commands` — 记录命令
 
@@ -582,19 +659,29 @@ Response 200: [{id, command_text, intent_category, ...}]
 | 1 | POST | `/api/tags` | 创建标签 | body: TagCreate |
 | 2 | GET | `/api/tags` | 标签列表 | `?category=` |
 | 3 | GET | `/api/tags/tree` | 标签树 | — |
-| 4 | POST | `/api/tag-links` | 创建关联 | body: TagLinkCreate |
-| 5 | GET | `/api/tag-links` | 关联列表 | `?source_tag_id=` |
-| 6 | POST | `/api/entries` | 创建记录 ★ | body: LearningEntryCreate (22字段) |
-| 7 | GET | `/api/entries` | 记录列表 | `?limit=&offset=` |
-| 8 | GET | `/api/entries/{id}` | 记录详情 | path: id |
-| 9 | GET | `/api/entries/feed` | Feed 流 | `?project_type=&discipline=&research_type=` |
-| 10 | GET | `/api/graph` | 图谱数据 | — |
-| 11 | GET | `/api/stats` | 统计 | — |
-| 12 | GET | `/api/projects` | 项目列表 | `?project_type=` |
-| 13 | GET | `/api/projects/{id}/entries` | 按项目查记录 | `?research_type=` |
-| 14 | GET | `/api/tags/{tag_id}/entries` | 按标签查记录 | `?research_type=` |
-| 15 | POST | `/api/nl-commands` | 记录命令 | body: NLCommandCreate |
-| 16 | GET | `/api/nl-commands` | 命令列表 | `?limit=&offset=&intent_category=` |
+| 4 | GET | `/api/tags/cloud` | 标签云 | — |
+| 5 | GET | `/api/tags/auto` | 自动标签建议 | — |
+| 6 | POST | `/api/tag-links` | 创建关联 | body: TagLinkCreate |
+| 7 | GET | `/api/tag-links` | 关联列表 | `?source_tag_id=` |
+| 8 | POST | `/api/entries` | 创建记录 ★ | body: LearningEntryCreate |
+| 9 | GET | `/api/entries` | 记录列表 | `?limit=&offset=` |
+| 10 | GET | `/api/entries/{id}` | 记录详情 | path: id |
+| 11 | GET | `/api/entries/feed` | Feed 流 | `?project_type=&discipline=&research_type=` |
+| 12 | GET | `/api/entries/week-index` | 有记录的周 | — |
+| 13 | GET | `/api/entries/week` | 单周记录 | `?year=&week=&limit=` |
+| 14 | GET | `/api/entries/{id}/neighbors` | 关联节点 | `?limit=` |
+| 15 | POST | `/api/entries/batch` | 批量创建 | body: 数组 |
+| 16 | PUT | `/api/entries/{id}` | 更新条目 | body: partial |
+| 17 | DELETE | `/api/entries/{id}` | 删除条目 | path: id |
+| 18 | POST | `/api/entries/backfill-research-types` | 推断 research_type | `?dry_run=` |
+| 19 | GET | `/api/graph` | 标签层级图谱 | — |
+| 20 | GET | `/api/graph/attention` | 注意力关联图谱 | — |
+| 21 | GET | `/api/stats` | 统计 | — |
+| 22 | GET | `/api/projects` | 项目列表 | `?project_type=` |
+| 23 | GET | `/api/projects/{id}/entries` | 按项目查记录 | `?research_type=` |
+| 24 | GET | `/api/tags/{tag_id}/entries` | 按标签查记录 | `?research_type=` |
+| 25 | POST | `/api/nl-commands` | 记录命令 | body: NLCommandCreate |
+| 26 | GET | `/api/nl-commands` | 命令列表 | `?limit=&offset=&intent_category=` |
 
 ---
 

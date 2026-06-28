@@ -20,17 +20,20 @@ llf                            # 最近记录
 
 ## Claude Code Skills
 
-项目内置三个 Skill（中文短命令）：
+项目内置四个 Skill（中文短命令）：
 
 | 触发词 | 别名 | 功能 |
 |--------|------|------|
 | `/记录` | `/save` `/沉淀` `/jilu` | 深度知识沉淀 |
 | `/状态` | `/status` `/zt` `/ll` | 系统状态 |
 | `/灵感` | `/aha` `/顿悟` `/linggan` | 快速顿悟 |
+| `/命令` | `/help` `/cmd` | 列出所有命令 |
 
 ## MCP 工具
 
-全局 MCP Server 提供三个工具：
+全局 MCP Server 提供五个工具：
 - `capture_learning` — AI 主动捕获学习内容
 - `batch_capture` — 批量导入
+- `deep_record` — 深度知识沉淀（协议对齐格式）
+- `quick_capture` — 快速顿悟捕获（energy=5, aha=true）
 - `learning_log_status` — 状态查询

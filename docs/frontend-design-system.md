@@ -120,16 +120,17 @@ body {
 | 弱文字 | text-muted | `#64748B` / `#475569` | 辅助信息、时间戳 |
 | 天空蓝 | accent-sky | `#38bdf8` | 主按钮、链接、激活态 |
 | 翡翠绿 | accent-emerald | `#34d399` | 高能量标记、通过状态 |
-| 琥珀黄 | accent-amber | `#fbbf24` | 中能量标记、深度研究 |
-| 紫色 | accent-purple | `#a78bfa` | 架构标签、领域映射 |
+| 蓝色 | accent-blue | `#60a5fa` | 深度研究 |
+| 紫色 | accent-violet | `#a78bfa` | 主题探索、架构标签 |
+| 翡翠绿 | accent-emerald | `#34d399` | 高能量标记、领域映射 |
 
 ### 3.2 状态色 — 研究类型 (Research Type)
 
 | 类型 | 标签 | 颜色 | 语义 |
 |------|------|------|------|
-| `deep-research` | 深度研究 / 小题深研 | `#fbbf24` (amber) | 聚焦单一问题深入挖掘 |
-| `topic-exploration` | 主题探索 / 专题探索 | `#34d399` (emerald) | 围绕主题发散探索 |
-| `domain-mapping` | 领域映射 | `#a78bfa` (purple) | 构建领域知识图谱 |
+| `deep-research` | 深度研究 | `#60a5fa` (blue) | 聚焦单一问题深入挖掘 |
+| `topic-exploration` | 主题探索 | `#a78bfa` (violet) | 围绕主题发散探索 |
+| `domain-mapping` | 领域映射 | `#34d399` (emerald) | 构建领域知识图谱 |
 
 ### 3.3 项目类型色
 
@@ -391,8 +392,6 @@ frontend/
 │   │   └── page.tsx                  # 知识图谱页（ECharts 力导向图）
 │   ├── feed/
 │   │   └── page.tsx                  # Feed 卡片流页（网格布局）
-│   └── tags/
-│       └── page.tsx                  # 标签页
 ├── styles/                           # 全局样式
 │   └── index.css                     # CSS 变量 + 重置 + 滚动条 + Markdown 样式
 ├── components/                       # 可复用组件（按职责分组）
@@ -457,16 +456,16 @@ frontend/
 | 路由 | 组件 | 视图 | 说明 |
 |------|------|------|------|
 | `/` | `app/page.tsx` | 时间线 | 按周分页、日分组、搜索过滤、研究类型筛选、CRUD |
-| `/graph` | `app/graph/page.tsx` | 知识图谱 | ECharts 力导向图，可拖拽/缩放 |
+| `/graph` | `app/graph/page.tsx` | 注意力知识图谱 | ECharts 力导向图 (layout:force)，节点按关联强度聚类，标签仅 hover 显示。配色: `#60a5fa` 深度研究 / `#a78bfa` 主题探索 / `#34d399` 领域映射 |
 | `/feed` | `app/feed/page.tsx` | Feed 流 | 卡片网格布局，研究类型 + 聚类过滤 |
-| `/tags` | `app/tags/page.tsx` | 语义聚类 | Attention 聚类 + 研究模式筛选 |
+
 
 ### 11.2 首页 (`/`) 布局结构
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │  Navigation                                                     │
-│  [📖 学习日志]          [时间线] [图谱] [Feed] [标签]            │
+│  [📖 学习日志]          [时间线] [图谱] [Feed]                  │
 ├──────────────────────────────────────────────────────────────────┤
 │  SearchBar / StatsPanel / FilterBar                              │
 ├───────────────────────────────────────┬──────────────────────────┤
@@ -546,7 +545,7 @@ interface PageHeaderProps {
 按钮样式:
   padding: 6px 14px, border-radius: 6px
   border: 1px solid var(--border-color)
-  background: transparent (默认) / var(--accent-amber) (激活)
+   background: transparent (默认) / var(--accent-color) (激活，颜色按类型)
   color: var(--text-secondary) (默认) / var(--bg-primary) (激活)
   font-size: 12px, font-weight: 500
 
@@ -682,8 +681,8 @@ cursor: pointer
 
 渲染:
   topic_tag_id → Tag 组件 (accent-sky)
-  project_tag_id → Tag 组件 (accent-purple)
-  research_type → 颜色按类型 (amber/emerald/purple)
+   project_tag_id → Tag 组件 (accent-purple / #a78bfa)
+   research_type → Tag 组件 (颜色按类型: #60a5fa blue / #a78bfa violet / #34d399 emerald)
   energy_level → 数字徽章 (energy>=4 → green, else → amber)
   aha_moment → 灯泡图标 (仅 aha_moment=1)
 ```
@@ -1077,7 +1076,7 @@ module.exports = nextConfig;
 |------|---------|
 | **暗色主题统一** | 所有背景从 `#0F172A` 到 `#1E293B` 深色梯度，无任何亮色模式 |
 | **毛玻璃层次** | 浮动元素（导航、弹窗）统一 backdrop-filter |
-| **语义色编码** | 4 种 accent 色对应不同维度（蓝=交互、绿=高能/通过、黄=中能/研究、紫=架构） |
+| **语义色编码** | 4 种 accent 色对应不同维度（蓝=交互/深度研究、紫=主题探索、绿=高能/领域映射、黄=中能量） |
 | **内联样式优先** | 所有组件使用 inline `style={{}}`，全局 CSS 统一在 `styles/index.css` 定义 |
 | **无外部 UI 库** | 不依赖 Material UI / Ant Design / Chakra 等，纯手工组件 |
 | **TypeScript 全量覆盖** | 所有组件 Props 有显式接口定义，禁止 `any` |

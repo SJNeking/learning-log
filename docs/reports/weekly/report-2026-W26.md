@@ -10,8 +10,8 @@
 
 | 指标 | 数值 |
 |------|------|
-| 学习记录 | 32 条 |
-| 知识标签 | 67 个 |
+| 学习记录 | 40 条 |
+| 知识标签 | 231 个 |
 | 标签关联 | 37 条 |
 | Git 提交 | 13 次 |
 | MCP 工具 | 5 个 |
@@ -38,7 +38,7 @@
 
 **提交**: `4dbf512` → `f9b7e9a`
 
-- Claude Code Skills 系统（`.claude/skills/`）
+- Claude Code Skills 系统（`~/.config/opencode/skills/`）
 - MCP Server v1.0 → v2.0（自动启停后端）
 - 5 个 MCP 工具：`capture_learning` / `batch_capture` / `learning_log_status` / `deep_record` / `quick_capture`
 - `learnlog` CLI 全局安装（`~/.local/bin/learnlog`）
@@ -120,7 +120,7 @@
 learning-log/
 ├── backend/          FastAPI + MCP Server + DB
 ├── frontend/         Next.js 14 UI
-├── .claude/skills/   项目级 Skill（记录/灵感/状态/服务/命令）
+├── ~/.config/opencode/skills/   全局 Skill（记录/灵感/状态/命令）
 ├── scripts/          种子数据 + 工具脚本
 ├── deploy/           launchd plist + 部署脚本
 ├── docs/             设计文档 + 周报
