@@ -409,6 +409,29 @@ body {
   min-height: 0;
 }
 
+.week-nav-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--bg-primary);
+  padding: 20px 0 16px;
+  text-align: center;
+  border-bottom: 1px solid var(--bg-secondary);
+  margin-bottom: 24px;
+}
+
+.day-entries-scroll {
+  position: relative;
+  margin-left: 60px;
+  border-left: 2px solid var(--bg-secondary);
+  padding-left: 24px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.day-entries-scroll::-webkit-scrollbar {
+  display: none;
+}
+
 /* EntryDetail sidebar — responsive */
 .sidebar-detail {
   width: 540px;

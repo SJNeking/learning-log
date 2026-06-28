@@ -1,4 +1,5 @@
 'use client';
+import { useEffect } from 'react';
 import EntryCard from '@/components/entry/EntryCard';
 import type { Entry, WeekInfo } from '@/types';
 
@@ -35,10 +36,34 @@ export default function TimelineView({
 
   const weekLabel = currentWeek.week === 0 ? '年初' : `第 ${currentWeek.week} 周`;
 
+  useEffect(() => {
+    const containers = document.querySelectorAll<HTMLElement>('.day-entries-scroll');
+    const fit3Cards = () => {
+      containers.forEach(el => {
+        const cards = el.children;
+        if (cards.length > 3) {
+          let h = 0;
+          for (let i = 0; i < 3; i++) {
+            h += (cards[i] as HTMLElement).offsetHeight;
+          }
+          el.style.maxHeight = h + 'px';
+        } else {
+          el.style.maxHeight = '';
+        }
+      });
+    };
+    fit3Cards();
+    const main = document.querySelector('.main-scroll');
+    if (!main) return;
+    const ro = new ResizeObserver(fit3Cards);
+    ro.observe(main);
+    return () => ro.disconnect();
+  }, [entries]);
+
   return (
     <div>
       {/* Week Navigation */}
-      <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+      <div className="week-nav-sticky">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
           <button onClick={onPrevWeek} disabled={!hasPrev} aria-label="上一周"
             className="week-nav-btn"
@@ -83,7 +108,11 @@ export default function TimelineView({
       </div>
 
       {/* Daily Groups */}
-      {Object.entries(grouped).map(([date, dayEntries]) => (
+      {Object.entries(grouped).map(([date, dayEntries]) => {
+        const [y, m, d] = date.split('/').map(Number);
+        const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+        const weekday = dayNames[new Date(y, m - 1, d).getDay()];
+        return (
         <div key={date} style={{ marginBottom: '32px' }}>
           <div style={{
             display: 'flex', alignItems: 'center', gap: '16px',
@@ -92,17 +121,21 @@ export default function TimelineView({
             <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.5px' }}>
               {date}
             </span>
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)', opacity: 0.6 }}>
+              周{weekday}
+            </span>
             <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{dayEntries.length} 条记录</span>
             <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to right, var(--border-color), transparent)' }} />
           </div>
 
-          <div style={{ position: 'relative', marginLeft: '60px', borderLeft: '2px solid var(--bg-secondary)', paddingLeft: '24px' }}>
+          <div className="day-entries-scroll">
             {dayEntries.map(entry => (
               <EntryCard key={entry.id} entry={entry} onClick={onSelect} />
             ))}
           </div>
         </div>
-      ))}
+      );
+    })}
     </div>
   );
 }

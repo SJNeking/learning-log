@@ -91,7 +91,7 @@ export default function Home() {
         <main
           ref={mainRef}
           className="main-scroll"
-          style={{ padding: '24px 16px 40px', display: 'flex', flexDirection: 'column' }}
+          style={{ padding: '0 16px 40px', display: 'flex', flexDirection: 'column' }}
         >
           {error ? (
             <div style={{ textAlign: 'center', padding: '80px', color: '#ef4444' }}>
