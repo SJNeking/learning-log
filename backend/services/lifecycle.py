@@ -5,17 +5,12 @@ import time
 import subprocess
 import requests
 
-PROJECT_DIR = os.environ.get(
-    "LEARNLOG_PROJECT_DIR",
-    os.path.expanduser("~/PycharmProjects/learning-log")
-)
-RUNTIME_DIR = os.path.expanduser("~/.learning-log")
+from config import PROJECT_DIR, BACKEND_URL, BACKEND_PORT, RUNTIME_DIR
+
 BACKEND_SCRIPT = os.path.join(PROJECT_DIR, "backend", "main.py")
 VENV_PYTHON = os.path.join(PROJECT_DIR, "venv", "bin", "python3")
 PID_FILE = os.path.join(RUNTIME_DIR, "backend.pid")
 PORT_FILE = os.path.join(RUNTIME_DIR, "backend.port")
-BACKEND_PORT = int(os.environ.get("LEARNLOG_PORT", "8002"))
-BACKEND_URL = f"http://localhost:{BACKEND_PORT}"
 
 
 def check_alive() -> bool:

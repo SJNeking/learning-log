@@ -5,10 +5,9 @@ Re-exports DB_PATH and init_db for backward-compatible imports.
 import os
 import sqlite3
 
+from config import DB_PATH
 from db.schema import create_tables
 from db.migrations import run_migrations
-
-DB_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'learning-log.db')
 
 
 def init_db():
