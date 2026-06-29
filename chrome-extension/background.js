@@ -142,9 +142,10 @@ async function executePrompt(platform, prompt, timeoutSec = 120, streamId = '') 
           setTimeout(poll, 300);
         }; poll();
       });
+      // 在打字前就记录 assistant 数量（防 ChatGPT 秒回导致 count 已变）
+      const bc = document.querySelectorAll('[data-message-author-role="assistant"]').length;
       return waitInput().then(found => {
         if (!found) return '{"error":"找不到ChatGPT输入框"}';
-        const bc = document.querySelectorAll('[data-message-author-role="assistant"]').length;
         return pollResp(bc, Date.now() + maxSec * 1000).then(text => {
           if (text) return JSON.stringify({text});
           return '{"error":"超时"}';
