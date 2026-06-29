@@ -107,7 +107,7 @@ Content-Type: application/json
 |------|-----------|------|
 | `capture_learning` | — | 自动分析并保存学习内容（调用 AI 分析） |
 | `deep_record` | `/记录` | 直接保存已有分析内容（不二次分析） |
-| `quick_capture` | `/灵感` | 快速捕获顿悟（energy=5, aha=true） |
+| `quick_capture` | `/记录 (L1 Quick)` | 快速捕获顿悟（energy=5, aha=true） |
 | `batch_capture` | — | 批量处理多条内容 |
 | `learning_log_status` | `/状态` | 查看系统状态 |
 
@@ -116,8 +116,8 @@ Content-Type: application/json
 | 命令 | 作用 |
 |------|------|
 | `learnlog status` | 查看系统状态 |
-| `learnlog record "主题" "洞察"` | 记录学习洞察 |
-| `echo "..." \| learnlog pipe -t "主题"` | 管道记录 |
+| `learnlog record "主题" --pipe` | 管道记录（推荐方式） |
+| `deploy/install-hooks.sh` | 安装 git hooks（所有 AI 代理提交后自动记录） |
 | `deploy/start.sh` | 手动启动前后端（临时） |
 | `learnlog service install` | 安装持久化服务（推荐） |
 | `learnlog service status` | 查看后台服务状态 |
@@ -136,16 +136,25 @@ backend/        FastAPI 服务 (app/main.py → app/{core,api,db,models,services
 frontend/       Next.js 14 时间线 UI (pages: / /feed /graph)
 deploy/         部署脚本
 docs/           设计文档
-~/.config/opencode/skills/ Skills (/记录 /状态 /灵感 /命令)
+~/.config/opencode/skills/ Skills (/记录 /状态 /命令)
 ```
 
 ## Skills
 
 自定义 Skill 在全局目录 `~/.config/opencode/skills/`:
-- `/记录` — 深度知识沉淀（协议对齐格式：结论→Mermaid+ASCII→Why→架构→决策→STAR，STAR 字段自动 null）
+- `/记录` — **统一记录技能**（三级深度：L1 Quick 灵感 · L2 Phase 阶段 · L3 Deep 沉淀）。标题格式 `{领域}: {核心动作/变化}`。结论先行，图胜于文。
 - `/状态` — Learning Log 系统状态
-- `/灵感` — 快速顿悟捕获 (energy=5, aha=true)
 - `/命令` — 列出所有命令
+
+### 自动阶段记录规则
+
+**每次完成一个可识别的任务阶段后，AI 必须自动调用 `learnlog record` 记录阶段。** 这是强制规则，不需要用户提醒。
+
+触发事件：代码提交后 · 构建通过后 · 新建组件/文件完成 · Bug 修复定位根因后 · 文档变更完成 · 用户说"好/继续/测试一下"表示阶段认可。
+
+使用 L2（Phase）格式：`learnlog record "领域: 具体变化" --pipe --energy 3 --type topic-exploration`，结构为 结论 + 图景 + 文件变更 + 关键决策 + 遗留。
+
+> ⚠️ 上一个阶段记录命令执行完毕后，请勿重复记录。一次任务阶段只记一次。
 
 ## 约束
 
