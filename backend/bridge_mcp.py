@@ -67,29 +67,81 @@ def _ensure_bridge() -> bool:
         return False
 
 
-def _ask_bridge(platform: str, prompt: str, timeout: int = 120) -> dict:
-    """调用 Bridge HTTP API 提问"""
+def _ask_bridge(platform: str, prompt: str, timeout: int = 120, stream: bool = False) -> dict:
+    """调用 Bridge HTTP API 提问。
+
+    当 stream=True 时，使用 /ask/start + /ask/progress 轮询，
+    并在等待过程中打印进度到 stderr（MCP 工具用）。
+    """
+    import time as _time
+
+    if not stream:
+        # 阻塞模式
+        data = json.dumps({
+            "platform": platform, "prompt": prompt, "timeout": timeout,
+        }).encode()
+        req = urllib.request.Request(
+            f"{BRIDGE_URL}/ask", data=data,
+            headers={"Content-Type": "application/json"}, method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=timeout + 10) as resp:
+                return json.loads(resp.read())
+        except urllib.error.HTTPError as e:
+            body = e.read().decode()
+            return {"error": f"HTTP {e.code}: {body[:300]}"}
+        except urllib.error.URLError as e:
+            return {"error": f"Bridge 连接失败: {e.reason}"}
+        except Exception as e:
+            return {"error": str(e)}
+
+    # 流式模式：/ask/start + 轮询
     data = json.dumps({
-        "platform": platform,
-        "prompt": prompt,
-        "timeout": timeout,
+        "platform": platform, "prompt": prompt, "timeout": timeout,
     }).encode()
-    req = urllib.request.Request(
-        f"{BRIDGE_URL}/ask",
-        data=data,
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
     try:
-        with urllib.request.urlopen(req, timeout=timeout + 10) as resp:
-            return json.loads(resp.read())
-    except urllib.error.HTTPError as e:
-        body = e.read().decode()
-        return {"error": f"HTTP {e.code}: {body[:300]}"}
-    except urllib.error.URLError as e:
-        return {"error": f"Bridge 连接失败: {e.reason}"}
+        req = urllib.request.Request(
+            f"{BRIDGE_URL}/ask/start", data=data,
+            headers={"Content-Type": "application/json"}, method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            result = json.loads(resp.read())
+        stream_id = result.get("stream_id", "")
+        if not stream_id:
+            return {"error": "未获取到 stream_id"}
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": f"流式启动失败: {e}"}
+
+    # 轮询进度
+    full_text = ""
+    last_len = 0
+    deadline = _time.time() + timeout + 10
+
+    while _time.time() < deadline:
+        _time.sleep(0.5)
+        try:
+            r = urllib.request.Request(
+                f"{BRIDGE_URL}/ask/progress?stream_id={stream_id}",
+            )
+            with urllib.request.urlopen(r, timeout=5) as resp:
+                p = json.loads(resp.read())
+        except Exception:
+            continue
+
+        text = p.get("text", "")
+        done = p.get("done", False)
+
+        if len(text) > last_len:
+            chunk = text[last_len:]
+            full_text += chunk
+            last_len = len(text)
+            # stderr 实时输出进度（MCP 工具的用户可见）
+            print(chunk, end="", file=sys.stderr, flush=True)
+
+        if done:
+            break
+
+    return {"text": full_text, "model": platform, "latency_ms": 0}
 
 
 # ── MCP 工具定义 ────────────────────────────────────────
@@ -158,7 +210,9 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
                 text="❌ Bridge Server 无法启动。请手动执行:\n   bridge start"
             )]
 
-        result = _ask_bridge(platform, prompt, timeout)
+        # ChatGPT 走流式模式（stderr 实时输出进度），其他平台走阻塞
+        use_stream = platform == "chatgpt"
+        result = _ask_bridge(platform, prompt, timeout, stream=use_stream)
 
         if "error" in result and result["error"]:
             # 如果是登录问题，给具体建议

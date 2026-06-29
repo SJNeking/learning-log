@@ -218,12 +218,12 @@ async function executePrompt(platform, prompt, timeoutSec = 120, streamId = '') 
           }));
           return true;
         };
-        // 重试 10s 找输入框
+        // 重试 4s 找输入框（更快失败）
         return new Promise(res => {
           if (findAndSend()) return res(true);
           let n = 0; const iv = setInterval(() => {
             n++;
-            if (findAndSend() || n > 25) { clearInterval(iv); res(findAndSend()); }
+            if (findAndSend() || n >= 10) { clearInterval(iv); res(findAndSend()); }
           }, 400);
         });
       },
@@ -294,10 +294,43 @@ async function executePrompt(platform, prompt, timeoutSec = 120, streamId = '') 
   // 超时兜底
   if (bestText) {
     if (streamId) sendToBridge({ type: 'progress', stream_id: streamId, text: bestText, done: true });
+    // 完成后预聚焦文本框（加速下次请求）
+    warmupTab(tab.id).catch(() => {});
     return { text: bestText, latency_ms: Date.now() - startTime, model: platform };
   }
   throw new Error(`⏰ ${platform} 回答超时`);
 }
+
+
+// ── Tab 温保 ─────────────────────────────────────────
+// 每次请求完成后,预聚焦 ChatGPT 的 ProseMirror 编辑器
+
+async function warmupTab(tabId) {
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId }, world: "MAIN",
+      func: () => {
+        const el = document.querySelector('#prompt-textarea');
+        if (el) { el.focus(); return true; }
+        return false;
+      },
+    });
+  } catch (e) {
+    // tab 可能已经关闭，忽略
+  }
+}
+
+
+// ── 周期性 Tab 保活 ────────────────────────────────
+
+// 每 30s 检查并保持 ChatGPT tab 活跃
+setInterval(() => {
+  for (const [tabId, platform] of tabPlatformMap) {
+    if (platform === 'chatgpt') {
+      warmupTab(tabId).catch(() => tabPlatformMap.delete(tabId));
+    }
+  }
+}, 30000);
 
 function platformMapToHostname(platform) {
   const map = {

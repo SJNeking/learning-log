@@ -173,10 +173,19 @@ async def ask_platform(platform: str, prompt: str, timeout: int = REQUEST_TIMEOU
     # ── 1. 优先 Extension ──────────────────────────────
     with _state_lock:
         providers = connected_providers.get(platform, set())
-        if providers:
+        has_provider = bool(providers)
+        if has_provider:
             provider = next(iter(providers))
         else:
             provider = None
+
+    if not has_provider and stream_id:
+        # 流式模式无 Extension 连接 → 立即标记完成
+        with _state_lock:
+            if stream_id in streaming_results:
+                streaming_results[stream_id]["progress"] = "❌ ChatGPT 未连接，请先打开 ChatGPT 页面"
+                streaming_results[stream_id]["done"] = True
+        return {"error": "无 Extension 连接"}
 
     if provider:
         req_id = str(uuid.uuid4())
@@ -459,13 +468,23 @@ def main():
     _log(f"🤖 Playwright 引擎加载（支持: {engine_platforms}）")
     _log(f"   💡 无需手动打开 AI 页面 — 引擎会自动降级执行")
 
-    # 启动 HTTP 线程
-    http_thread = threading.Thread(target=run_http_server, daemon=True)
+    # 启动 HTTP 线程（等主事件循环就绪后再对外服务）
+    http_ready = threading.Event()
+    http_thread = threading.Thread(
+        target=lambda: (http_ready.wait(), run_http_server()),
+        daemon=True,
+    )
     http_thread.start()
 
     # 启动 WebSocket（主线程 asyncio）
+    async def _run_with_loop():
+        global _main_event_loop
+        _main_event_loop = asyncio.get_running_loop()
+        http_ready.set()
+        await run_ws_server()
+
     try:
-        asyncio.run(run_ws_server())
+        asyncio.run(_run_with_loop())
     except KeyboardInterrupt:
         _log("👋 关闭")
     except OSError as e:
