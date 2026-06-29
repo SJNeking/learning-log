@@ -286,7 +286,7 @@ def delete_entry(entry_id: int):
 
 @router.get("/api/entries/{entry_id}/neighbors")
 def get_entry_neighbors(entry_id: int, w_content: float = 0.6, w_tags: float = 0.25, w_temporal: float = 0.15):
-    from services.attention_service import entries_for_attention
+    from app.services.attention_service import entries_for_attention
     with db_session() as conn:
         entries = entries_for_attention(conn)
     target = next((e for e in entries if e['id'] == entry_id), None)
