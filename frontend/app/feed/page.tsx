@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { api } from '@/lib/api';
 import Navigation from '@/components/layout/Navigation';
 import PageHeader from '@/components/layout/PageHeader';
@@ -32,9 +32,13 @@ export default function FeedPage() {
   const loadEntriesRef = useRef<(reset: boolean) => Promise<void>>(async () => {});
   const { handleAsyncError } = useErrorHandler();
 
-  useEffect(() => {
-    api.attention({ top_k: 5 }).then(setAttention).catch(() => {});
-  }, []);
+  const loadAttention = useCallback(async () => {
+    if (attention) return;
+    try {
+      const data = await api.attention({ top_k: 5 });
+      setAttention(data);
+    } catch {}
+  }, [attention]);
 
   const loadEntries = async (reset: boolean) => {
     const key = ++loadKeyRef.current;
@@ -123,6 +127,11 @@ export default function FeedPage() {
                 <option key={i} value={i}>{name.slice(0, 30)}</option>
               ))}
             </select>
+          )}
+          {!attention && (
+            <button onClick={loadAttention} className="text-xs btn-ghost" style={{ padding: '6px 12px' }}>
+              加载聚类
+            </button>
           )}
         </div>
 

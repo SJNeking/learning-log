@@ -24,8 +24,11 @@ uvicorn==0.24.0
 sqlite3
 requests==2.31.0
 python-dotenv==1.0.0
-mcp==1.0.0
+mcp>=1.0.0
 pydantic==2.5.0
+sentence-transformers
+scikit-learn
+jieba
 ```
 
 ---
@@ -34,55 +37,68 @@ pydantic==2.5.0
 
 ```
 backend/
-├── main.py              # ★ FastAPI 主应用（~72 行，仅 app init + include_routers）
-├── mcp_server.py        # ★ MCP 协议服务（AI 侧面通道，~300 行）
-├── clustering.py        # Louvain 社区检测（未纳入 services/）
-├── db/                  # ★ 数据库包
-│   ├── __init__.py      # DB_PATH + init_db()
-│   ├── schema.py        # 4 表 DDL + 12 索引
-│   └── migrations.py    # ALTER TABLE 迁移
-├── models/
-│   └── __init__.py      # 6 个 Pydantic 模型
-├── api/
-│   └── v1/              # API 路由处理器
-│       ├── entries.py   # 条目 CRUD / feed / week / neighbors
-│       ├── tags.py      # 标签 CRUD / tree / links / cloud
-│       ├── graph.py     # 图谱数据 / attention
-│       ├── projects.py  # 项目列表 / 条目
-│       ├── stats.py     # 健康检查统计
-│       └── nl_commands.py  # 自然语言命令
-├── services/            # 业务逻辑层
-│   ├── embedding_service.py  # SentenceTransformer 嵌入
-│   ├── attention_service.py  # 注意力关联图
-│   ├── ai_service.py         # AI 分析（MCP 调用）
-│   └── lifecycle.py          # 后端生命周期（MCP 管理）
-├── utils/               # 无状态工具函数
-│   ├── db_utils.py      # 数据库连接 + row 转换
-│   ├── text_processing.py  # 标签提取 + 摘要
-│   └── date_utils.py    # 周日期计算
-├── auto_capture.py      # [待迁移] 对话文件自动扫描器
-├── quick_record.py      # [待迁移] 交互式命令行记录工具
-├── seed_tags.py         # [待迁移] 技术栈标签种子数据
-├── test_mcp.py          # [待迁移] MCP 功能测试脚本
+├── app/                 # ★ 应用容器包
+│   ├── main.py          # ★ FastAPI 主应用（~36 行）
+│   ├── core/
+│   │   └── config.py    # 全局配置（DB_PATH, BACKEND_URL, MCP_SSE_PORT）
+│   ├── api/
+│   │   └── v1/          # ★ API 路由
+│   │       ├── entries.py      # 条目 CRUD / feed / week / neighbors
+│   │       ├── tags.py         # 标签 CRUD / tree / links / cloud
+│   │       ├── graph.py        # 图谱数据 / attention
+│   │       ├── projects.py     # 项目列表 / 条目
+│   │       ├── stats.py        # 健康检查统计
+│   │       └── nl_commands.py  # 自然语言命令
+│   │       └── __init__.py     # 聚合 6 个路由器
+│   ├── db/
+│   │   ├── __init__.py  # init_db()
+│   │   ├── schema.py    # 4 表 DDL + 12 索引
+│   │   └── migrations.py# ALTER TABLE 迁移
+│   ├── models/
+│   │   └── __init__.py  # 6 个 Pydantic 模型
+│   ├── services/        # ★ 业务逻辑层
+│   │   ├── embedding_service.py    # SentenceTransformer 嵌入 + TF-IDF
+│   │   ├── attention_service.py    # 注意力关联图
+│   │   ├── ai_service.py           # AI 分析（MCP 调用）
+│   │   ├── lifecycle.py            # 后端生命周期（MCP 管理）
+│   │   └── clustering_service.py   # Louvain 社区检测（原 clustering.py）
+│   └── utils/           # 无状态工具函数
+│       ├── db_utils.py       # 数据库连接 + row 转换
+│       ├── text_processing.py# 标签提取 + 摘要
+│       └── date_utils.py     # 周日期计算
+├── mcp_server.py        # ★ MCP 入口（8 行，委托至 protocols/mcp.py）
+├── protocols/           # MCP 协议模块（避免与 mcp pip 包名冲突）
+│   ├── __init__.py
+│   └── mcp.py           # MCP 工具定义 + 处理器 + SSE/STDIO（~300 行）
+├── scripts/             # 迁移后的脚本工具
+│   ├── auto_capture.py  # 对话文件自动扫描器
+│   ├── quick_record.py  # 交互式命令行记录工具
+│   ├── seed_tags.py     # 技术栈标签种子数据
+│   └── test_mcp.py      # MCP 功能测试脚本
 ├── requirements.txt     # Python 依赖
 ├── .env.example         # 环境变量模板
-├── data/                # 数据库文件目录（运行时）
 ├── watch/               # MCP 监听目录（放 .md 文件自动捕获）
 │   └── processed/       # 已处理的文件归档
-└── __pycache__/         # Python 缓存
+└── __pycache__/
 ```
 
 ```
 项目根目录/
-├── backend/             # ← 后端代码
-├── frontend/            # 前端代码
-├── scripts/             # 18 个辅助脚本（数据迁移/种子/自动记录）
+├── backend/             # 后端代码（含 app/ 容器包）
+├── frontend/            # Next.js 14 前端
 ├── data/
-│   └── learning-log.db  # SQLite 数据库文件（~400KB）
-├── docs/                # 文档
-├── reports/weekly/      # 周报输出目录
-├── start.sh             # 一键启动脚本
-├── deploy.sh / deploy.bat  # 部署脚本
+│   └── learning-log.db  # SQLite 数据库文件（~400KB, 40 条目, 231 活跃标签）
+├── docs/                # 设计文档
+├── deploy/              # 部署脚本
+│   ├── start.sh              # 一键启动前后端
+│   ├── run-backend.sh        # 独立启动后端
+│   ├── run-frontend.sh       # 独立启动前端
+│   ├── run-mcp.sh            # 独立启动 MCP
+│   ├── deploy.sh / deploy.bat# production 部署
+│   ├── install-services.sh   # launchd 服务安装
+│   └── 3× .plist             # launchd 开机自启配置
+├── .mcp.json            # MCP STDIO 配置
+├── CLAUDE.md            # AI 协作指南
 └── venv/                # Python 虚拟环境
 ```
 
@@ -240,13 +256,19 @@ CREATE INDEX idx_nl_commands_intent ON nl_commands(intent_category);
 ### 3.4 数据库初始化函数
 
 ```python
-# db/__init__.py
-DB_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'learning-log.db')
+# app/core/config.py（集中配置）
+PROJECT_DIR = Path(__file__).resolve().parent.parent.parent.parent
+DB_PATH = str(PROJECT_DIR / 'data' / 'learning-log.db')
+BACKEND_URL = os.getenv('BACKEND_URL', 'http://localhost:8002')
+MCP_SSE_PORT = int(os.getenv('MCP_SSE_PORT', '8010'))
+
+# app/db/__init__.py（数据库初始化，使用 app.core.config）
+from app.core.config import DB_PATH
 
 def init_db():
     """幂等初始化：所有 CREATE 使用 IF NOT EXISTS"""
-    from db.schema import create_tables
-    from db.migrations import run_migrations
+    from app.db.schema import create_tables
+    from app.db.migrations import run_migrations
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -317,7 +339,7 @@ END as level
 
 ## 五、Pydantic 模型定义
 
-所有模型定义在 `backend/models/__init__.py`，各路由通过 `from models import ...` 引用。
+所有模型定义在 `backend/app/models/__init__.py`，各路由通过 `from app.models import ...` 引用。
 
 ### 5.1 TagCreate — 创建标签
 
@@ -784,24 +806,28 @@ app.add_middleware(
 ### 8.5 FastAPI 应用配置
 
 ```python
-# backend/main.py — 仅 ~72 行
+# backend/app/main.py — 36 行
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api.v1 import router as api_router
+from app.db import init_db, DB_PATH
+from app.api.v1 import router
 
 app = FastAPI(title="Learning Log API", version="2.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
-app.include_router(api_router)
+app.include_router(router)
 
 @app.on_event("startup")
 async def startup():
-    from db import init_db
+    from app.services.embedding_service import get_embedding_model
     init_db()
+    get_embedding_model()
 
 if __name__ == '__main__':
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8002)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8002, reload=True)
 ```
+
+启动命令: `python3 -m app.main` (从 `backend/` 目录执行)
 
 ---
 
@@ -812,12 +838,14 @@ if __name__ == '__main__':
 MCP (Model Context Protocol) 服务是一个独立进程，通过 stdio 与 AI 客户端通信，提供学习内容的自动捕获能力。
 
 ```
-文件: backend/mcp_server.py        # MCP 协议层（工具定义 + handler）
-依赖: services/ai_service.py        # AI 分析逻辑
-依赖: services/lifecycle.py         # 后端启动/检查/保活
+文件: backend/mcp_server.py        # MCP 入口（8 行，委托至 protocols/mcp.py）
+       backend/protocols/mcp.py    # MCP 协议层（工具定义 + handler, ~300 行）
+依赖: app/services/ai_service.py   # AI 分析逻辑
+依赖: app/services/lifecycle.py    # 后端启动/检查/保活
 启动: python3 mcp_server.py
 协议: MCP stdio / SSE
 服务名: "learning-log-mcp"
+部署: llmcp install / llmcp start（launchd 持久化）
 ```
 
 ### 9.2 配置（.env）
@@ -940,14 +968,15 @@ async def main():
 
 ## 十、辅助工具服务
 
-### 10.1 `auto_capture.py` — 对话文件自动扫描
+### 10.1 `scripts/auto_capture.py` — 对话文件自动扫描
 
 ```
+路径: backend/scripts/auto_capture.py
 扫描目录: ~/.lingma/agents/
 文件类型: *.md
 时间窗口: 最近 24 小时
 提取方式: 关键词匹配 (MVP 阶段)
-目标表: learning_entries (使用旧版 schema)
+目标表: learning_entries
 ```
 
 ```python
@@ -963,7 +992,7 @@ def extract_from_file(file_path):
             entries.append({...})   # 简单模板生成
 ```
 
-### 10.2 `quick_record.py` — 交互式命令行记录
+### 10.2 `scripts/quick_record.py` — 交互式命令行记录
 
 ```
 功能:
@@ -985,7 +1014,7 @@ def extract_from_file(file_path):
   11.security  12.monitor  13.test  14.other
 ```
 
-### 10.3 `seed_tags.py` — 标签种子数据
+### 10.3 `scripts/seed_tags.py` — 标签种子数据
 
 ```
 标签: 41 个技术栈标签 (base/language/framework/database/cache/mq/registry/tool/monitor/test/gateway/security)
@@ -994,7 +1023,7 @@ def extract_from_file(file_path):
 幂等: 自动跳过已存在的 (捕获 409)
 ```
 
-### 10.4 `test_mcp.py` — MCP 功能测试
+### 10.4 `scripts/test_mcp.py` — MCP 功能测试
 
 ```
 测试流程:
@@ -1062,7 +1091,7 @@ def extract_from_file(file_path):
 # 3. 安装 pip 依赖 (fastapi, uvicorn)
 # 4. cd frontend && npm install
 # 5. 启动前端 (npm run dev, port 3000)  — 后台
-# 6. 启动后端 (python3 main.py, port 8002) — 后台
+# 6. 启动后端 (python3 -m app.main, port 8002) — 后台
 # 7. open http://localhost:3000
 # 8. trap INT TERM → 清理两个进程
 ```
@@ -1073,7 +1102,7 @@ def extract_from_file(file_path):
 # 终端 1 — 后端
 cd backend
 source ../venv/bin/activate
-python3 main.py
+python3 -m app.main
 # → Uvicorn running on http://0.0.0.0:8002
 
 # 终端 2 — 前端
@@ -1140,22 +1169,25 @@ AI_MODEL=qwen2.5
 ## 十五、复现检查清单
 
 1. **环境准备**: Python 3.10+, `python3 -m venv venv && source venv/bin/activate`
-2. **安装依赖**: `pip install fastapi==0.104.1 uvicorn==0.24.0 requests==2.31.0 python-dotenv==1.0.0 mcp==1.0.0 pydantic==2.5.0`
+2. **安装依赖**: `pip install fastapi==0.104.1 uvicorn==0.24.0 requests==2.31.0 python-dotenv==1.0.0 mcp==1.0.0 pydantic==2.5.0 sentence-transformers scikit-learn jieba`
 3. **创建目录结构**（参考 §二）:
-   - `backend/db/{__init__,schema,migrations}.py` — 数据库包
-   - `backend/models/__init__.py` — 6 个 Pydantic 模型
-   - `backend/api/v1/{entries,tags,graph,projects,stats,nl_commands}.py` — 路由
-   - `backend/services/{embedding,attention,ai,lifecycle}_service.py` — 业务逻辑
-   - `backend/utils/{db_utils,text_processing,date_utils}.py` — 工具函数
-   - `backend/main.py` — FastAPI 入口（~72 行，仅 include_routers）
-   - `backend/mcp_server.py` — MCP 协议服务
-   - `backend/clustering.py` — Louvain 社区检测
+   - `backend/app/*` — 应用容器包
+   - `backend/app/main.py` — FastAPI 入口（~36 行）
+   - `backend/app/core/config.py` — 集中配置
+   - `backend/app/api/v1/{entries,tags,graph,projects,stats,nl_commands}.py` — 路由
+   - `backend/app/db/{__init__,schema,migrations}.py` — 数据库包
+   - `backend/app/services/{embedding,attention,ai,lifecycle,clustering}_service.py` — 业务逻辑
+   - `backend/app/utils/{db_utils,text_processing,date_utils}.py` — 工具函数
+   - `backend/app/models/__init__.py` — 6 个 Pydantic 模型
+   - `backend/protocols/mcp.py` — MCP 协议层
+   - `backend/mcp_server.py` — MCP 入口（8 行）
+   - `backend/scripts/{auto_capture,quick_record,seed_tags,test_mcp}.py` — CLI 工具
    - `backend/.env` — 复制 §12.3 环境变量
-4. **初始化数据库**: `python3 -c "from db import init_db; init_db()"`
-5. **种子数据**: `python3 utils/seed_tags.py`（需后端已启动）
-6. **启动后端**: `python3 main.py` → 验证 `curl http://localhost:8002/api/stats`
+4. **初始化数据库**: `python3 -c "from app.db import init_db; init_db()"`
+5. **种子数据**: `python3 scripts/seed_tags.py`（需后端已启动）
+6. **启动后端**: `python3 -m app.main` → 验证 `curl http://localhost:8002/api/stats`
 7. **启动 MCP** (可选): `python3 mcp_server.py`
-8. **验证**: `python3 utils/test_mcp.py` → 3 个测试全部通过
+8. **验证**: `python3 scripts/test_mcp.py` → 3 个测试全部通过
 
 ---
 

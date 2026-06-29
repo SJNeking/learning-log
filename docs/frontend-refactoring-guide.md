@@ -116,12 +116,12 @@
 - **严重度**: 🔴 高
 - **方案**: 统一为 `boolean`，在 API 响应/请求层做序列化转换。
 
-### 15. GraphPage `useEffect` 内存泄漏
+### 15. GraphPage `useEffect` 内存泄漏（已修复）
 
-- **位置**: `app/graph/page.tsx:38-128`
-- **问题**: cleanup function 定义在 `import('echarts').then()` 闭包内，外层 `useEffect` 的 return 是空函数。组件卸载时 chart.dispose() 和 resize listener 均未被清理。
-- **严重度**: 🔴 高
-- **方案**: 将 echarts 实例保存在 `useRef` 中，在 `useEffect` 外层 return 中统一清理。
+- **位置**: `app/graph/page.tsx:280-360`
+- **问题**: ~~cleanup function 定义在 `import('echarts').then()` 闭包内，外层 `useEffect` 的 return 是空函数。组件卸载时 chart.dispose() 和 resize listener 均未被清理。~~
+- **修复**: 移除 `import('echarts')` 动态加载，改为模块级 `import * as echarts from 'echarts'`。echarts 实例通过 `useRef` 持有，cleanup 通过 `useEffect` 外层 return 统一执行。
+- **严重度**: 🔴 高 → ✅ 已修复
 
 ### 16. `target: "es5"` 过时
 

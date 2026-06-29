@@ -1,7 +1,10 @@
 fastapi==0.104.1
-uvicorn==0.24.0
-sqlite3
-requests==2.31.0
-python-dotenv==1.0.0
+jieba
 mcp>=1.0.0
 pydantic==2.5.0
+python-dotenv==1.0.0
+requests==2.31.0
+scikit-learn
+sentence-transformers
+sqlite3
+uvicorn==0.24.0

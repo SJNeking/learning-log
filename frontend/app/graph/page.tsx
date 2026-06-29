@@ -33,7 +33,8 @@ import type {
   Entry,
   ResearchType,
 } from '@/types/graph';
-import type { EChartsType, EChartsOption } from 'echarts';
+import * as echarts from 'echarts';
+import type { EChartsOption } from 'echarts';
 
 // ==================== 常量定义 ====================
 
@@ -126,7 +127,7 @@ export default function GraphPage() {
 
   // Refs
   const chartRef = useRef<HTMLDivElement>(null);
-  const echartsRef = useRef<EChartsType | null>(null);
+  const echartsRef = useRef<echarts.ECharts | null>(null);
   const cleanupRef = useRef<(() => void) | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -282,76 +283,72 @@ export default function GraphPage() {
   useEffect(() => {
     if (!filteredData || !chartRef.current || filteredData.nodes.length < 2) return;
 
-    import('echarts').then(echarts => {
-      if (!chartRef.current) return;
-      if (echartsRef.current) echartsRef.current.dispose();
+    if (echartsRef.current) echartsRef.current.dispose();
 
-      const chart = echarts.init(chartRef.current, 'dark');
-      echartsRef.current = chart;
+    const chart = echarts.init(chartRef.current, 'dark');
+    echartsRef.current = chart;
 
-      const nodeMap = new Map<number, EnhancedGraphNode>(filteredData.nodes.map(n => [n.id, n]));
-      const degrees = filteredData.nodes.map(n => n.degree);
-      const maxDeg = Math.max(...degrees, 1);
+    const nodeMap = new Map<number, EnhancedGraphNode>(filteredData.nodes.map(n => [n.id, n]));
+    const degrees = filteredData.nodes.map(n => n.degree);
+    const maxDeg = Math.max(...degrees, 1);
 
-      let option: EChartsOption;
-      switch (viewType) {
-        case 'timeline':
-          option = createTimelineOption(filteredData, nodeMap, maxDeg);
-          break;
-        case 'galaxy':
-          option = createGalaxyOption(filteredData, nodeMap, maxDeg);
-          break;
-        case 'force':
-        default:
-          option = createForceGraphOption(filteredData, nodeMap, maxDeg);
-          break;
+    let option: EChartsOption;
+    switch (viewType) {
+      case 'timeline':
+        option = createTimelineOption(filteredData, nodeMap, maxDeg);
+        break;
+      case 'galaxy':
+        option = createGalaxyOption(filteredData, nodeMap, maxDeg);
+        break;
+      case 'force':
+      default:
+        option = createForceGraphOption(filteredData, nodeMap, maxDeg);
+        break;
+    }
+
+    chart.setOption(option);
+
+    chart.on('click', (params) => {
+      if (params.dataType === 'node') {
+        const nodeData = params.data as { id?: string | number };
+        const node = nodeMap.get(Number(nodeData.id));
+        if (!node) return;
+        handleNodeClick(node);
       }
-
-      chart.setOption(option);
-
-      // 事件处理
-      chart.on('click', (params) => {
-        if (params.dataType === 'node') {
-          const nodeData = params.data as { id?: string | number };
-          const node = nodeMap.get(Number(nodeData.id));
-          if (!node) return;
-          handleNodeClick(node);
-        }
-      });
-
-      chart.on('mouseover', (params) => {
-        if (params.dataType === 'node') {
-          const nodeData = params.data as { id?: string | number };
-          const node = nodeMap.get(Number(nodeData.id));
-          if (node) setHoveredNode(node);
-        }
-      });
-
-      chart.on('mouseout', () => {
-        setHoveredNode(null);
-      });
-
-      chart.on('contextmenu', (params) => {
-        if (params.dataType === 'node') {
-          const evt = params.event as unknown as { event: Event };
-          evt.event.preventDefault();
-          const nodeData = params.data as { id?: string | number };
-          const node = nodeMap.get(Number(nodeData.id));
-          if (node) {
-            setGalaxyCenter(node.id);
-          }
-        }
-      });
-
-      const handleResize = () => { chart.resize(); };
-      window.addEventListener('resize', handleResize);
-
-      cleanupRef.current = () => {
-        window.removeEventListener('resize', handleResize);
-        chart.dispose();
-        echartsRef.current = null;
-      };
     });
+
+    chart.on('mouseover', (params) => {
+      if (params.dataType === 'node') {
+        const nodeData = params.data as { id?: string | number };
+        const node = nodeMap.get(Number(nodeData.id));
+        if (node) setHoveredNode(node);
+      }
+    });
+
+    chart.on('mouseout', () => {
+      setHoveredNode(null);
+    });
+
+    chart.on('contextmenu', (params) => {
+      if (params.dataType === 'node') {
+        const evt = params.event as unknown as { event: Event };
+        evt.event.preventDefault();
+        const nodeData = params.data as { id?: string | number };
+        const node = nodeMap.get(Number(nodeData.id));
+        if (node) {
+          setGalaxyCenter(node.id);
+        }
+      }
+    });
+
+    const handleResize = () => { chart.resize(); };
+    window.addEventListener('resize', handleResize);
+
+    cleanupRef.current = () => {
+      window.removeEventListener('resize', handleResize);
+      chart.dispose();
+      echartsRef.current = null;
+    };
 
     return () => {
       cleanupRef.current?.();

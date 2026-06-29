@@ -124,14 +124,14 @@ Content-Type: application/json
 | `learnlog update <id> --energy 5` | 更新记录字段 |
 | `echo "..." \| learnlog update <id> --pipe` | 管道更新长文 |
 | `learnlog delete <id>` | 删除记录 |
+| `python3 -m app.main` | 手动启动后端（从 backend/ 目录） |
 
 ## 目录结构
 
 ```
 backend/        FastAPI 服务 (app/main.py → app/{core,api,db,models,services,utils})
+                protocols/mcp.py MCP 协议层, scripts/ CLI 工具
 frontend/       Next.js 14 时间线 UI (pages: / /feed /graph)
-scripts/tools/  可复用工具 (auto_record, context_manager...)
-scripts/seeds/  种子数据脚本
 deploy/         部署脚本
 docs/           设计文档
 ~/.config/opencode/skills/ Skills (/记录 /状态 /灵感 /命令)
@@ -152,6 +152,15 @@ docs/           设计文档
 - 数据库在 `data/learning-log.db`，不要手动修改
 - 标签遵循反向域名: `cn.dolphinmind.learning.log.tag.{category}.{name}`
 - API 文档: http://localhost:8002/docs
+
+## 性能基准
+
+| 端点 | 耗时 | 备注 |
+|------|------|------|
+| 13 个标准端点 | < 0.5s | ✅ 正常 |
+| `/api/graph/attention` | **~150ms** | ⚡ 优化后（原是 120s 超时）。Louvain 社区检测使用 `comm_sum_tot` 缓存 + `max_iterations=50` |
+| 前端 ECharts 图谱 | 静态导入 | 800KB 库仅在页面首次加载时获取 |
+| Feed 页聚类 | 懒加载 | 需要时点击"加载聚类"按钮触发 |
 
 ## 侧边栏交互规则（关键）
 

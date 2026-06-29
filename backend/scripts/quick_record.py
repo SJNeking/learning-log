@@ -252,7 +252,7 @@ def save_entry(entry_data):
 def main():
     if not check_backend():
         print("❌ 后端服务未运行")
-        print("请先启动: cd backend && python3 main.py")
+        print("请先启动: cd backend && python3 -m app.main")
         return
     
     entry_data = interactive_input()

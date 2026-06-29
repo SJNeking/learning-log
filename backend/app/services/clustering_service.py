@@ -13,123 +13,71 @@ import re
 def louvain_community_detection(
     similarity_matrix: list[list[float]],
     n: int,
-    resolution: float = 1.0
+    resolution: float = 1.0,
+    max_iterations: int = 50
 ) -> list[int]:
     """
-    简化的 Louvain 社区检测算法（Greedy Modularity Optimization）
-    
-    Args:
-        similarity_matrix: n×n 相似度矩阵
-        n: 节点数量
-        resolution: 分辨率参数（>1 产生更多小社区，<1 产生更少大社区）
-    
-    Returns:
-        communities: 每个节点的社区分配 (0-based)
+    优化的 Louvain 社区检测算法。
+    使用缓存社区总强度 + 最大迭代限制，避免 O(n²) 重复计算和无限循环。
     """
     if n <= 1:
         return [0]
-    
-    # Phase 1: 每个节点初始化为自己的社区
+
     communities = list(range(n))
-    
-    # 计算每个节点的总相似度（用于模块度计算）
     node_strength = [sum(similarity_matrix[i]) for i in range(n)]
     total_strength = sum(node_strength)
-    
+
     if total_strength == 0:
         return [0] * n
-    
-    # 迭代优化
-    improved = True
-    while improved:
+
+    # 缓存每个社区的节点总强度（comm_sum_tot[c] = Σ node_strength[i] for i in comm c）
+    comm_sum_tot: dict[int, float] = {i: node_strength[i] for i in range(n)}
+
+    for _ in range(max_iterations):
         improved = False
         for i in range(n):
             current_comm = communities[i]
-            
-            # 计算将节点 i 移动到每个邻居社区带来的模块度增益
+            ki = node_strength[i]
+
+            neighbor_comms = set()
+            row = similarity_matrix[i]
+            for j in range(n):
+                if row[j] > 0.05 and j != i:
+                    neighbor_comms.add(communities[j])
+
             best_comm = current_comm
             best_gain = 0.0
-            
-            # 获取节点 i 的邻居社区
-            neighbor_comms = set()
-            for j in range(n):
-                if similarity_matrix[i][j] > 0.05 and j != i:
-                    neighbor_comms.add(communities[j])
-            
             for target_comm in neighbor_comms:
                 if target_comm == current_comm:
                     continue
-                
-                # 计算模块度增益（简化版）
-                # ΔQ = [Σ_in + 2*k_i_in] - [Σ_tot + k_i]^2 - [Σ_in - Σ_tot^2]
-                # 简化：使用社区内部连接密度变化
-                gain = _compute_modularity_gain(
-                    i, current_comm, target_comm,
-                    similarity_matrix, communities, node_strength, total_strength, resolution
-                )
-                
+
+                ki_in = 0.0
+                for j in range(n):
+                    if communities[j] == target_comm:
+                        ki_in += row[j]
+
+                sum_tot = comm_sum_tot[target_comm]
+                gain = (2 * ki_in - resolution * (2 * sum_tot + ki) * ki / total_strength) / total_strength
                 if gain > best_gain:
                     best_gain = gain
                     best_comm = target_comm
-            
+
             if best_comm != current_comm:
                 communities[i] = best_comm
+                comm_sum_tot[current_comm] = comm_sum_tot.get(current_comm, 0.0) - ki
+                comm_sum_tot[best_comm] = comm_sum_tot.get(best_comm, 0.0) + ki
                 improved = True
-    
-    # 重新编号社区（确保从0开始连续）
+
+        if not improved:
+            break
+
     comm_map = {}
     new_communities = []
     for c in communities:
         if c not in comm_map:
             comm_map[c] = len(comm_map)
         new_communities.append(comm_map[c])
-    
     return new_communities
-
-
-def _compute_modularity_gain(
-    node_idx: int,
-    current_comm: int,
-    target_comm: int,
-    sim_matrix: list[list[float]],
-    communities: list[int],
-    node_strength: list[float],
-    total_strength: float,
-    resolution: float
-) -> float:
-    """计算将节点移动到目标社区的模块度增益"""
-    # 当前社区内部连接
-    sum_in = 0.0
-    for i in range(len(communities)):
-        if communities[i] == current_comm:
-            for j in range(len(communities)):
-                if communities[j] == current_comm:
-                    sum_in += sim_matrix[i][j]
-    
-    # 目标社区内部连接
-    sum_target = 0.0
-    for i in range(len(communities)):
-        if communities[i] == target_comm:
-            for j in range(len(communities)):
-                if communities[j] == target_comm:
-                    sum_target += sim_matrix[i][j]
-    
-    # 目标社区总强度
-    sum_tot = sum(node_strength[i] for i in range(len(communities)) if communities[i] == target_comm)
-    
-    # 节点到目标社区的连接
-    ki_in = sum(sim_matrix[node_idx][j] for j in range(len(communities)) if communities[j] == target_comm)
-    
-    # 节点强度
-    ki = node_strength[node_idx]
-    
-    if total_strength == 0:
-        return 0.0
-    
-    # 模块度增益公式（简化版）
-    gain = (2 * ki_in - resolution * (2 * sum_tot + ki) * ki / total_strength) / total_strength
-    
-    return gain
 
 
 # ==================== 聚类标签生成 ====================

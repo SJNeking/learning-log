@@ -146,7 +146,7 @@ if __name__ == "__main__":
     
     if not check_backend():
         print("❌ 后端服务未运行")
-        print("请先启动: cd backend && python3 main.py")
+        print("请先启动: cd backend && python3 -m app.main")
         exit(1)
     
     print("\n1️⃣  正在创建标签...")

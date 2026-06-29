@@ -8,7 +8,7 @@
 - 三视图切换和工具栏
 
 ### Phase 2: 智能聚类 ✅
-- Louvain 社区检测算法 (`backend/clustering.py`)
+- Louvain 社区检测算法 (`app/services/clustering_service.py`)
 - 语义化聚类标签自动生成
 - 注意力图谱 API 集成
 
@@ -20,7 +20,7 @@
 - 搜索增强（清空按钮/匹配高亮）
 - 动画过渡（500-800ms cubicOut）
 
-### Phase 4: 性能优化 ✅
+### Phase 4: 前端性能优化 ✅
 
 #### 4.1 节点数量控制
 - `topK` 状态控制后端请求的节点数量
@@ -42,6 +42,25 @@
 - `clusterList` 缓存聚类列表数据
 - `hasActiveFilters` 缓存筛选状态
 
+### Phase 5: 后端 + 前端联调性能修复 ✅
+
+#### 5.1 Louvain O(n²) → O(n)
+- **文件**: `app/services/clustering_service.py`
+- **问题**: `_compute_modularity_gain` 有 4 层嵌套循环，O(n⁴) 复杂度
+- **修复**: 移除 `_compute_modularity_gain`（含 2 个无用 O(n²) 计算），内联公式并使用 `comm_sum_tot` 缓存（O(n)）
+- **结果**: `/api/graph/attention` **150ms**（原是 **120s 超时**）
+
+#### 5.2 ECharts 动态 import → 静态
+- **文件**: `app/graph/page.tsx`
+- **问题**: `import('echarts')` 在 `useEffect` 内触发，每次视图切换重载 800KB
+- **修复**: 替换为 `import * as echarts from 'echarts'` 模块级静态导入
+- **结果**: 0 额外运行时下载
+
+#### 5.3 Feed 页聚类懒加载
+- **文件**: `app/feed/page.tsx`
+- **问题**: 每次挂载拉取 `/api/graph/attention?top_k=5`，用户不用聚类也浪费
+- **修复**: 移除 `useEffect` 自动加载，改为点击"加载聚类"按钮触发
+
 ## 重构前后对比
 
 | 特性 | 重构前 | 重构后 |
@@ -56,15 +75,7 @@
 | 动画过渡 | 无 | 500-800ms cubicOut |
 | 性能监控 | 无 | FPS 监控 |
 | 节点数量控制 | 固定 100 | 可调（默认 80） |
-
-## Git 提交历史
-
-| Phase | 提交 | 说明 |
-|-------|------|------|
-| Phase 1 | `f6ccf62` | 三视图切换+筛选搜索+视觉增强 |
-| Phase 2 | `5248035` | Louvain社区检测+动态标签生成 |
-| Phase 3 | `28f4e18` | 键盘快捷键+聚类面板+星系聚焦+动画 |
-| Phase 4 | (当前) | 节点数量控制+FPS监控+性能优化 |
+| **attention API 响应** | **120s 超时** | **~150ms** |
 
 ## 功能完整度检查
 
@@ -84,6 +95,6 @@
 
 ---
 
-**更新时间**: 2026-06-28  
-**负责人**: Cline  
-**状态**: 所有 4 个 Phase 完成 ✅
+**更新时间**: 2026-06-29  
+**负责人**: Cline / opencode  
+**状态**: Phase 1-5 全部完成 ✅
