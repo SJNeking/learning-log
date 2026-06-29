@@ -306,11 +306,51 @@ async function waitForResponse()
 | Extension 空转超时（无 Extension） | ~5s | — | 降级到 Playwright 引擎 |
 | Ollama 本地模型 | ~0.5s | — | 最快路径 |
 
+### 流式推送实现（2026-06-29）
+
+将 Extension 的 `executePrompt` 拆为**两阶段**模式：
+
+```
+Phase 1: 注入 prompt + 发送（chrome.scripting.executeScript）
+Phase 2: 轮询 ChatGPT 页面 → WS progress 消息 → Bridge → CLI 轮询
+```
+
+#### 数据流
+
+```
+web-ai --stream "问题"
+  ↓  POST /ask/start
+Bridge Server :9877
+  ↓  立即返回 stream_id
+CLI 拿到 stream_id
+  ↓  后台: ask_platform(stream_id) 在主循环执行
+  │     ├─ WS → Extension → executeScript → 打字 + Enter
+  │     └─ 等待 Extension 返回
+  │  
+  │  Extension Phase 2:
+  │     ├─ polling loop (800ms) → 读 [data-message-author-role]
+  │     ├─ WS progress → streaming_results[stream_id]
+  │     └─ WS response → event.set() → ask_platform 完成
+  │
+CLI polling loop (500ms):
+  GET /ask/progress?stream_id=xxx
+  ├─ text 增长 → 输出新增字符
+  └─ done=true → 结束
+```
+
+#### 端点
+
+| 端点 | 方法 | 用途 |
+|------|------|------|
+| `/ask/start` | POST | 异步启动执行，返回 stream_id |
+| `/ask/progress?stream_id=xxx` | GET | 查询当前进度文本 |
+| `/ask/stream?stream_id=xxx` | GET | SSE 长连接推送（备选） |
+
 ### 仍存在的问题
 
 | 问题 | 影响 | 计划 |
 |------|------|------|
-| ChatGPT 回答慢（10-30s） | 用户等待感知差 | SSE 流式端点，逐段推送 |
+| ChatGPT 回答慢（10-30s） | 用户等待感知差 | ✅ 已实现**流式推送**（逐段显示） |
 | Extension 断开后降级到 Playwright 引擎 | ChatGPT 因 Cloudflare 不可用 | 探索反检测方案 |
 | 无多轮对话上下文传递 | 每次提问是独立会话 | Context Manager Phase 3 |
 
