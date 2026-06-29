@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="512" y2="512">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#818cf8"/>
+    </linearGradient>
+  </defs>
+  <!-- 圆角方形背景 -->
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+
+  <!-- 打开的书本 -->
+  <path d="M96 160 L256 200 L416 160 L416 352 L256 392 L96 352 Z"
+        stroke="url(#accent)" stroke-width="20" fill="none" stroke-linejoin="round"/>
+  <!-- 书脊 -->
+  <line x1="256" y1="200" x2="256" y2="392" stroke="url(#accent)" stroke-width="20" stroke-linecap="round"/>
+
+  <!-- 知识图谱节点（左侧） -->
+  <circle cx="180" cy="270" r="14" fill="#38bdf8"/>
+  <circle cx="140" cy="230" r="10" fill="#818cf8"/>
+  <circle cx="150" cy="310" r="10" fill="#34d399"/>
+  <line x1="180" y1="270" x2="140" y2="230" stroke="#38bdf8" stroke-width="5" stroke-linecap="round" opacity="0.6"/>
+  <line x1="180" y1="270" x2="150" y2="310" stroke="#38bdf8" stroke-width="5" stroke-linecap="round" opacity="0.6"/>
+  <line x1="140" y1="230" x2="150" y2="310" stroke="#818cf8" stroke-width="5" stroke-linecap="round" opacity="0.4"/>
+
+  <!-- 知识图谱节点（右侧） -->
+  <circle cx="332" cy="270" r="14" fill="#f472b6"/>
+  <circle cx="372" cy="230" r="10" fill="#fbbf24"/>
+  <circle cx="362" cy="310" r="10" fill="#34d399"/>
+  <line x1="332" y1="270" x2="372" y2="230" stroke="#f472b6" stroke-width="5" stroke-linecap="round" opacity="0.6"/>
+  <line x1="332" y1="270" x2="362" y2="310" stroke="#f472b6" stroke-width="5" stroke-linecap="round" opacity="0.6"/>
+  <line x1="372" y1="230" x2="362" y2="310" stroke="#fbbf24" stroke-width="5" stroke-linecap="round" opacity="0.4"/>
+
+  <!-- 顶部连接线（跨书脊） -->
+  <line x1="180" y1="270" x2="332" y2="270" stroke="#38bdf8" stroke-width="5" stroke-linecap="round" opacity="0.3" stroke-dasharray="8 8"/>
+
+  <!-- 书本页文字线条 -->
+  <line x1="120" y1="290" x2="230" y2="315" stroke="#334155" stroke-width="6" stroke-linecap="round"/>
+  <line x1="120" y1="310" x2="210" y2="330" stroke="#334155" stroke-width="6" stroke-linecap="round"/>
+  <line x1="282" y1="315" x2="392" y2="290" stroke="#334155" stroke-width="6" stroke-linecap="round"/>
+  <line x1="302" y1="330" x2="392" y2="310" stroke="#334155" stroke-width="6" stroke-linecap="round"/>
+</svg>
