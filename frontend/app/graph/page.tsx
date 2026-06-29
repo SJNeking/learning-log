@@ -29,6 +29,7 @@ import type {
   EnhancedGraphFilter,
   EnhancedGraphViewType,
   EnhancedViewConfig,
+  EnhancedTimeRangePreset,
   Entry,
   ResearchType,
 } from '@/types/graph';
@@ -129,36 +130,6 @@ export default function GraphPage() {
   const cleanupRef = useRef<(() => void) | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  // ==================== 键盘快捷键 ====================
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Escape: 取消选中
-      if (e.key === 'Escape') {
-        setSelectedNode(null);
-        setNeighborNodes(null);
-        setEntryDetail(null);
-      }
-      // Ctrl/Cmd + F: 聚焦搜索框
-      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
-        e.preventDefault();
-        searchRef.current?.focus();
-      }
-      // 1/2/3: 切换视图
-      if (e.key === '1') setViewType('force');
-      if (e.key === '2') setViewType('timeline');
-      if (e.key === '3') setViewType('galaxy');
-      // R: 刷新
-      if (e.key === 'r' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        const controller = new AbortController();
-        loadGraph(controller.signal);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
   // ==================== 数据加载 ====================
 
   const loadGraph = useCallback((signal: AbortSignal, customTopK?: number) => {
@@ -187,6 +158,32 @@ export default function GraphPage() {
     const controller = new AbortController();
     loadGraph(controller.signal);
     return () => controller.abort();
+  }, [loadGraph]);
+
+  // ==================== 键盘快捷键 ====================
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSelectedNode(null);
+        setNeighborNodes(null);
+        setEntryDetail(null);
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+      if (e.key === '1') setViewType('force');
+      if (e.key === '2') setViewType('timeline');
+      if (e.key === '3') setViewType('galaxy');
+      if (e.key === 'r' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const controller = new AbortController();
+        loadGraph(controller.signal);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [loadGraph]);
 
   // ==================== 数据筛选 ====================
@@ -310,20 +307,22 @@ export default function GraphPage() {
           break;
       }
 
-      chart.setOption(option as any);
+      chart.setOption(option);
 
       // 事件处理
-      chart.on('click', (params: any) => {
+      chart.on('click', (params) => {
         if (params.dataType === 'node') {
-          const node = nodeMap.get(Number(params.data.id));
+          const nodeData = params.data as { id?: string | number };
+          const node = nodeMap.get(Number(nodeData.id));
           if (!node) return;
           handleNodeClick(node);
         }
       });
 
-      chart.on('mouseover', (params: any) => {
+      chart.on('mouseover', (params) => {
         if (params.dataType === 'node') {
-          const node = nodeMap.get(Number(params.data.id));
+          const nodeData = params.data as { id?: string | number };
+          const node = nodeMap.get(Number(nodeData.id));
           if (node) setHoveredNode(node);
         }
       });
@@ -332,10 +331,12 @@ export default function GraphPage() {
         setHoveredNode(null);
       });
 
-      chart.on('contextmenu', (params: any) => {
+      chart.on('contextmenu', (params) => {
         if (params.dataType === 'node') {
-          params.event.event.preventDefault();
-          const node = nodeMap.get(Number(params.data.id));
+          const evt = params.event as unknown as { event: Event };
+          evt.event.preventDefault();
+          const nodeData = params.data as { id?: string | number };
+          const node = nodeMap.get(Number(nodeData.id));
           if (node) {
             setGalaxyCenter(node.id);
           }
@@ -356,6 +357,7 @@ export default function GraphPage() {
       cleanupRef.current?.();
       cleanupRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredData, viewType, galaxyCenterId, handleNodeClick]);
 
   // ==================== ECharts 配置生成 ====================
@@ -383,15 +385,16 @@ export default function GraphPage() {
       animationEasing: 'cubicOut',
       tooltip: {
         trigger: 'item',
-        formatter: (params: any) => {
+        formatter: (raw) => {
+          const params = raw as unknown as { dataType: string; data: { name?: string; cluster_name?: string; energy?: number; degree?: number; edgeType?: string; weight?: number } };
+          const d = params.data;
           if (params.dataType === 'node') {
-            const d = params.data;
             return `<strong>${d.name}</strong><br/>${d.cluster_name}<br/>能量 ${d.energy} · ${d.degree} 条关联`;
           }
           if (params.dataType === 'edge') {
-            const typeLabel = params.data.edgeType === 'content' ? '内容相似' 
-              : params.data.edgeType === 'tags' ? '标签重叠' : '时间相邻';
-            return `关联强度: ${(params.data.weight * 100).toFixed(0)}%<br/>类型: ${typeLabel}`;
+            const typeLabel = d.edgeType === 'content' ? '内容相似'
+              : d.edgeType === 'tags' ? '标签重叠' : '时间相邻';
+            return `关联强度: ${(Number(d.weight) * 100).toFixed(0)}%<br/>类型: ${typeLabel}`;
           }
           return '';
         },
@@ -477,7 +480,7 @@ export default function GraphPage() {
     data: EnhancedGraphData,
     nodeMap: Map<number, EnhancedGraphNode>,
     maxDeg: number
-  ): any => {
+  ): EChartsOption => {
     const sortedNodes = [...data.nodes].sort((a, b) =>
       new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     );
@@ -487,7 +490,6 @@ export default function GraphPage() {
     const padding = 80;
     const timelineWidth = width - padding * 2;
 
-    // 更好的交错排列：使用正弦波避免随机性
     const positions = sortedNodes.map((node, index) => {
       const x = padding + (index / Math.max(sortedNodes.length - 1, 1)) * timelineWidth;
       const amplitude = 120;
@@ -504,10 +506,11 @@ export default function GraphPage() {
       animationEasing: 'cubicOut',
       tooltip: {
         trigger: 'item',
-        formatter: (params: any) => {
+        formatter: (raw) => {
+          const params = raw as unknown as { dataType: string; data: { name?: string; timestamp?: string; cluster_name?: string; energy?: number } };
           if (params.dataType === 'node') {
             const d = params.data;
-            return `<strong>${d.name}</strong><br/>${new Date(d.timestamp).toLocaleDateString('zh-CN')}<br/>聚类: ${d.cluster_name}<br/>能量 ${d.energy}`;
+            return `<strong>${d.name}</strong><br/>${new Date(d.timestamp as string).toLocaleDateString('zh-CN')}<br/>聚类: ${d.cluster_name}<br/>能量 ${d.energy}`;
           }
           return '';
         },
@@ -553,11 +556,11 @@ export default function GraphPage() {
         {
           type: 'scatter',
           coordinateSystem: 'cartesian2d',
-          symbolSize: (params: any) => calculateNodeSize(params.data.energy, params.data.degree, maxDeg),
+          symbolSize: (value: number, params) => {
+            const d = params.data as { energy?: number; degree?: number };
+            return calculateNodeSize(d.energy as number, d.degree as number, maxDeg);
+          },
           itemStyle: {
-            color: (params: any) => getClusterColor(params.data.cluster_id),
-            shadowBlur: 10,
-            shadowColor: (params: any) => getClusterColor(params.data.cluster_id) + '60',
           },
           emphasis: {
             scale: 1.5,
@@ -573,18 +576,23 @@ export default function GraphPage() {
               cluster_id: node.cluster_id,
               cluster_name: node.cluster_name,
               timestamp: node.timestamp,
+              itemStyle: {
+                color: getClusterColor(node.cluster_id),
+                shadowBlur: 10,
+                shadowColor: getClusterColor(node.cluster_id) + '60',
+              },
             };
           }),
         },
       ],
-    };
+    } as EChartsOption;
   };
 
   const createGalaxyOption = (
     data: EnhancedGraphData,
     nodeMap: Map<number, EnhancedGraphNode>,
     maxDeg: number
-  ): any => {
+  ): EChartsOption => {
     // 确定中心节点
     const centerNodeId = galaxyCenterId || (data.nodes.reduce((max, n) => n.energy > max.energy ? n : max, data.nodes[0]).id);
     const centerNode = nodeMap.get(centerNodeId) || data.nodes[0];
@@ -647,7 +655,8 @@ export default function GraphPage() {
       animationEasing: 'cubicOut',
       tooltip: {
         trigger: 'item',
-        formatter: (params: any) => {
+        formatter: (raw) => {
+          const params = raw as unknown as { dataType: string; data: { name?: string; cluster_name?: string; energy?: number } };
           if (params.dataType === 'node') {
             const d = params.data;
             return `<strong>${d.name}</strong><br/>${d.cluster_name}<br/>能量 ${d.energy}<br/><small>右键设为焦点</small>`;
@@ -665,7 +674,7 @@ export default function GraphPage() {
           if (!pos) return null;
           const isCenter = n.id === centerNodeId;
           return {
-            id: n.id,
+            id: String(n.id),
             name: n.topic.length > 12 ? n.topic.slice(0, 10) + '…' : n.topic,
             x: pos.x,
             y: pos.y,
@@ -682,14 +691,14 @@ export default function GraphPage() {
             },
             label: {
               show: isCenter || viewConfig.showLabels,
-              position: 'right',
+              position: 'right' as const,
               formatter: '{b}',
               fontSize: isCenter ? 14 : 10,
               fontWeight: isCenter ? 'bold' : 'normal',
               color: '#F1F5F9',
             },
           };
-        }).filter(Boolean),
+        }).filter((x): x is NonNullable<typeof x> => x != null),
         edges: viewConfig.showEdges ? data.edges.map(e => ({
           source: e.source,
           target: e.target,
@@ -701,7 +710,7 @@ export default function GraphPage() {
           },
         })) : [],
       }],
-    };
+    } as EChartsOption;
   };
 
   // ==================== 渲染 ====================
@@ -822,9 +831,9 @@ export default function GraphPage() {
               <select
                 value={filter.timeRange?.type || ''}
                 onChange={e => {
-                  const val = e.target.value as any;
+                  const val = e.target.value;
                   if (val) {
-                    handleFilterChange({ timeRange: { type: val } });
+                    handleFilterChange({ timeRange: { type: val as EnhancedTimeRangePreset } });
                   } else {
                     handleFilterChange({ timeRange: undefined });
                   }

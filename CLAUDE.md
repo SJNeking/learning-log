@@ -128,7 +128,7 @@ Content-Type: application/json
 ## 目录结构
 
 ```
-backend/        FastAPI 服务 (main.py, db.py, mcp_server.py)
+backend/        FastAPI 服务 (main.py → models/ api/v1/ services/ db/ utils/)
 frontend/       Next.js 14 时间线 UI (pages: / /feed /graph)
 scripts/tools/  可复用工具 (auto_record, context_manager...)
 scripts/seeds/  种子数据脚本

@@ -29,6 +29,7 @@ export default function FeedPage() {
   const [attention, setAttention] = useState<AttentionGraph | null>(null);
   const [clusterFilter, setClusterFilter] = useState<number | null>(null);
   const loadKeyRef = useRef(0);
+  const loadEntriesRef = useRef<(reset: boolean) => Promise<void>>(async () => {});
   const { handleAsyncError } = useErrorHandler();
 
   useEffect(() => {
@@ -63,11 +64,12 @@ export default function FeedPage() {
       }
     }
   };
+  loadEntriesRef.current = loadEntries;
 
   useEffect(() => {
     setOffset(0);
     setHasMore(true);
-    loadEntries(true);
+    loadEntriesRef.current(true);
   }, [activeFilter]);
 
   const handleLoadMore = () => {
